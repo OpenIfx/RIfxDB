@@ -1,2 +1,4 @@
 # RIfxDB
-R driver for Informix
+R driver for Informix  
+  
+# Project Status : On the drawing board
