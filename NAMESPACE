@@ -1,0 +1,3 @@
+useDynLib(RIfxDB, .registration = TRUE, .fixes = "Ifx")
+
+exportPattern("^[[:alpha:]]+")

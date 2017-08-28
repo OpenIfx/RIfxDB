@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+.Rhistory
 
 # Object files
 *.o
@@ -50,3 +51,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+#VS
+.vs
+x64 
+.vs/*
+x64/*
+
+.Rproj.user
