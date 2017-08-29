@@ -8,7 +8,7 @@ Authors@R: c(person("Sathyanesh", "Krishnan", role = c("aut", "cre"),
              person("Javier", "Sagrera", role = "aut", 
 	            comment = "2017"))
 Title: R Database Driver for Informix                
-Description: A native R interface for Informix Database
+Description: Native R interface for Informix Database
 SystemRequirements: Informix Client SDK 4.10 xC7 or above.
 Depends: R (>= 3.0.0)
 Imports: stats
