@@ -1,11 +1,24 @@
+
 Package: RIfxDB
-Type: Package
-Title: What the Package Does (Title Case)
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
-Encoding: UTF-8
-LazyData: true
+Revision: $Rev: 3476 $
+Date: 2017-08-20
+Authors@R: c(person("Sathyanesh", "Krishnan", role = c("aut", "cre"),
+                    email = "msatyan@gmail.com"),
+             person("Javier", "Sagrera", role = "aut", 
+	            comment = "2017"))
+Title: R Database Driver for Informix                
+Description: A native R interface for Informix Database
+SystemRequirements: Informix Client SDK 4.10 xC7 or above.
+Depends: R (>= 3.0.0)
+Imports: stats
+LazyLoad: yes
+Biarch: yes
+License: GPL-2 | GPL-3
+NeedsCompilation: yes
+Packaged: 2017-08-13 07:00:50 UTC; ripley
+Author: Sathyanesh Krishnan [aut, cre],
+  Javier Sagrera [aut] (1999 to Oct 2002)
+Maintainer: Sathyanesh Krishnan <msatyan@gmail.com>
+Repository: CRAN
+Date/Publication: 2017-04-13 07:04:28 UTC
