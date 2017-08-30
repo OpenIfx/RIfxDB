@@ -1,3 +1,11 @@
+///////////////////////////////////////////////////////////////
+// file RIfxDB/R/RIfxDB.R
+//
+// copyright 2017  Sathyanesh Krishnan
+// copyright 2017  Javier Sagrera
+//
+///////////////////////////////////////////////////////////////
+
 /*
  *  RODDC/src/RIfxDB.c 
  *         M. Lapsley Copyright (C) 1999-2002

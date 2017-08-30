@@ -1,4 +1,8 @@
 # file RIfxDB/R/RIfxDB.R
+# copyright 2017  Sathyanesh Krishnan
+# copyright 2017  Javier Sagrera
+#
+#########################################################################
 # copyright (C) 1999-2002  M. Lapsley
 # copyright (C) 2002-2016  B. D. Ripley
 #
