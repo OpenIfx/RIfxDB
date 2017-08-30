@@ -1,0 +1,980 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{hyperref,color,url,alltt,parskip}
+%\usepackage{Sweave}
+\usepackage{Rd}  % mainly for upright quotes.
+\usepackage{graphicx}
+%\newcommand{\code}[1]{\texttt{#1}}
+%\newcommand{\pkg}[1]{\texttt{#1}}
+%\newcommand{\var}[1]{\emph{#1}}
+%\newcommand{\link}[1]{#1}
+%\newcommand{\sQuote}[1]{`#1'}
+\newenvironment{smallexample}{\begin{alltt}\scriptsize}{\end{alltt}}
+\newenvironment{example}{\begin{alltt}\small}{\end{alltt}}
+
+\setcounter{topnumber}{2}
+\def\topfraction{1.0}
+\setcounter{bottomnumber}{1}
+\def\bottomfraction{.3}
+\setcounter{totalnumber}{3}
+\def\textfraction{0}
+\def\floatpagefraction{0.8}
+\setcounter{dbltopnumber}{2}
+
+\usepackage{color}
+\definecolor{Blue}{rgb}{0,0,0.8}
+\hypersetup{%
+colorlinks,%
+plainpages=true,%
+linkcolor=black,%
+citecolor=black,%
+urlcolor=Blue,%
+pdfstartview=FitH,%
+pdfview={XYZ null null null},%
+%pdfpagemode=UseNone,%
+pdftitle={ODBC Connectivity for R},%
+pdfauthor={B. D. Ripley}%
+}
+
+\begin{document}
+
+%\VignetteIndexEntry{ODBC Connectivity}
+%\VignetteDepends{RIfxDB}
+%\VignetteKeywords{databases}
+%\VignetteKeywords{ODBC}
+%\VignettePackage{RIfxDB}
+
+%\SweaveOpts{engine=R,eps=FALSE}
+
+\title{ODBC Connectivity}
+\author{by Brian Ripley\\
+  Department of Statistics, University of Oxford\\
+\url{ripley@stats.ox.ac.uk}
+}
+\maketitle
+\sloppy
+
+\noindent
+Package \pkg{RIfxDB} implements ODBC database connectivity.  It was
+originally written by Michael Lapsley (St George's Medical School,
+University of London) in the early days of R (1999), but after he
+disappeared in 2002, it was rescued and since much extended by Brian
+Ripley.  Version 1.0-1 was released in January 2003, and \pkg{RIfxDB}
+is nowadays a mature and much-used platform for interfacing R to
+database systems.
+
+Thanks to Marc Schwartz for contributing some of the experiences
+here.  See also the archives of the \code{R-sig-db} mailing list.
+
+\section{Basic Usage}
+
+Two groups of functions are provided in \pkg{RIfxDB}.  The mainly
+internal \code{odbc*} commands implement low-level access to C-level
+ODBC functions with similar\footnote{in most cases with prefix
+  \code{SQL} replacing \code{odbc}.} names.  The \code{sql*} functions
+operate at a higher level to read, save, copy and manipulate data
+between data frames and SQL tables.  The two low-level functions which
+are commonly used make or break a connection.
+
+\subsection{Making a connection}
+
+ODBC works by setting up a \emph{connection} or \emph{channel} from
+the client (here \pkg{RIfxDB}) to the DBMSs as specified in the DSN.
+Such connections are normally used throughout a session, but should be
+closed explicitly at the end of the session---however \pkg{RIfxDB} will
+clear up after you if you forget (with a warning that might not be
+seen in a GUI environment).  There can be many simultaneous
+connections.
+
+The simplest way to make a connection is
+\begin{example}
+library(RIfxDB)
+ch <- odbcConnect("\var{some\_dsn}")
+\end{example}
+and when you are done with it,
+\begin{example}
+close(ch)
+# or if you prefer
+odbcClose(ch)
+\end{example}
+The connection object \code{ch} is how you specify one of potentially
+many open connections, and is the first argument to all other
+\pkg{RIfxDB} functions.  If you forget the details, printing it will
+give some summary information.
+
+If the DBMS user and password are needed and not stored in the DSN,
+they can be supplied by e.g.{}
+\begin{example}
+ch <- odbcConnect("\var{some\_dsn}", uid = "\var{user}", pwd = "\var{****}")
+\end{example}
+Users of the R GUI under Windows\footnote{This does not work from
+  \code{Rterm.exe}.} have another possibility: if an incompletely
+specified DSN is given, the driver-specific Data Source dialog box
+will pop up to allow it to be completed.
+% Something about security here?
+
+More flexibility is available \emph{via} function
+\code{odbcDriverConnect}, which works with a \emph{connection string}.
+At its simplest it is
+\begin{example}
+"DSN=\var{dsn};UID=\var{uid};PWD=\var{pwd}"
+\end{example}
+but it can be constructed without a DSN by specifying a driver
+directly \emph{via} \code{DRIVER=}, and more (in some cases many more)
+driver-specific parameters can be given.  See the documentation for
+the driver (and Appendix~A) for more details.
+
+\subsection{Reading from a database}
+
+where `database' can be interpreted very widely, including for example
+Excel spreadsheets and directories of flat files.
+
+The simplest and most common use of \pkg{RIfxDB} is to extract data
+from databases held on central database servers.  Such access is
+read-only, and this can be enforced by settings in the DSN or
+\emph{via} permission settings (also known as \emph{privileges}) on
+the database.
+
+To find out what tables are accessible from a connection \code{ch}, use
+\begin{example}
+sqlTables(ch)
+\end{example}
+Some drivers will return all visible table-like objects, not just
+those owned by you.  In that case you may want to restrict the scope
+by e.g.{}
+\begin{example}
+sqlTables(ch, tableType = "TABLE")
+sqlTables(ch, schema = "\var{some\_pattern}")
+sqlTables(ch, tableName = "\var{some\_pattern}")
+\end{example}
+The details are driver-specific but in most cases
+\code{\var{some\_pattern}} can use wildcards\footnote{these are the
+  SQL wildcards used for example in \code{LIKE} clauses.} with
+\emph{underscore} matching a single character and \emph{percent}
+matching zero or more characters.  Since underscore is a valid
+character in a table name it can be handled literally by preceding it
+by a backslash---but it is rarely necessary to do so.
+
+A table can be retrieved as a data frame by
+\begin{example}
+res <- sqlFetch(ch, "\var{table\_name}")
+\end{example}
+If it has many rows it can be retrieved in sections by
+\begin{example}
+res <- sqlFetch(ch, "\var{table\_name}", max = \var{m})
+res <- sqlFetchMore(ch, "\var{table\_name}", max = \var{m})
+\dots
+\end{example}
+
+It is often necessary to reduce the data to be transferred: we have
+seen how to subset rows, but it can be more effective to restrict the
+columns or to return only rows meeting some conditions.  To find out
+what columns are available, use \code{sqlColumns}, for example
+\begin{smallexample}
+> sqlColumns(ch, "USArrests")
+   TABLE\_CAT TABLE\_SCHEM TABLE\_NAME COLUMN\_NAME DATA\_TYPE TYPE\_NAME COLUMN\_SIZE
+1    ripley        <NA>  USArrests       State        12  varchar         255
+2    ripley        <NA>  USArrests      Murder         8   double          15
+3    ripley        <NA>  USArrests     Assault         4  integer          10
+4    ripley        <NA>  USArrests    UrbanPop         4  integer          10
+5    ripley        <NA>  USArrests        Rape         8   double          15
+\dots
+\end{smallexample}
+Then an \emph{SQL Query} can be used to return part of the table, for
+example (MySQL on Linux)
+\begin{example}
+> sqlQuery(sh, paste("SELECT State, Murder FROM USArrests",
++                    "WHERE Rape > 30 ORDER BY Murder"))
+       State Murder
+1   Colorado    7.9
+2    Arizona    8.1
+3 California    9.0
+4     Alaska   10.0
+5 New Mexico   11.4
+6   Michigan   12.1
+7     Nevada   12.2
+8    Florida   15.4
+\end{example}
+Note that although there are standards for SQL, all the major
+producers of DBMSs have their own dialects, so for example on the
+Oracle and DB2 systems we tested this query had to be given as
+\begin{example}
+> sqlQuery(ch, paste('SELECT "State", "Murder" FROM "USArrests"',
++                    'WHERE "Rape" > 30 ORDER BY "Murder"'))
+\end{example}
+or even in upper case.  Describing how to extract data from databases
+is the \emph{forte} of the SQL language, and doing so efficiently is
+the aim of many of the DBMSs, so this is a very powerful tool.  To
+learn SQL it is best to find a tutorial specific to the dialect you
+will use; for example Chapter~3 of the MySQL manual is a tutorial.  A
+basic tutorial which covers some common dialects\footnote{MySQL,
+  Oracle and Microsoft SQL Server.}  can be found at
+\url{http://www.1keydata.com/sql/sql.html}: tutorials on how to
+perform common tasks in several commonly used DBMSs are available at
+\url{http://sqlzoo.net/}.
+
+% <<>>=
+% library(RIfxDB)
+% channel <- odbcConnect("test")
+% sqlSave(channel, USArrests, rownames = "State", verbose = TRUE)
+% sqlQuery(channel, paste("select State, Murder from USArrests",
+%                         "where Rape > 30 order by Murder"))
+% sqlFetch(channel, "USArrests", rownames = "State")
+% sqlDrop(channel, "USArrests")
+% close(channel)
+% @
+
+\subsection{Table Names}
+
+SQL-92 expects both table and column names to be alphanumeric plus
+underscore, and \pkg{RIfxDB} does not in general support vendor
+extensions (for example Access allows spaces).  There are some
+system-specific quoting schemes: Access and Excel allow table names to
+be enclosed in \code{[ ]} in SQL queries, MySQL (by default) quotes
+\emph{via} backticks, and most other systems use the ANSI SQL standard
+of double quotes.
+
+%More recent SQL standards allow \code{\$} and \code{\#} under some
+%circumstances.
+
+The \code{odbcConnnect} function allows the specification of the
+quoting rules for names \pkg{RIfxDB} itself sends, but sensible
+defaults\footnote{backticks for MySQL, \code{[ ]} for the Access and
+  Excel convenience wrappers, otherwise ANSI double quotes.} are
+selected.  Users do need to be aware of the quoting issue when
+writing queries for \code{sqlQuery} themselves.
+
+Note the underscore is a wildcard character in table names for some of
+the functions, and so may need to be escaped (by backslash) at times.
+
+Normally table names containing a period are interpreted as references
+to another schema (see below): this can be suppressed by opening the
+connection with argument \code{interpretDot = FALSE}.
+
+
+\subsection{Types of  table}
+
+The details are somewhat DBMS-specific, but `tables' usually means
+`tables, views or similar objects'.
+
+In some systems `tables' are physical objects (files) that actually
+store data---Mimer calls these \emph{base tables}.  For these other
+`tables' can be derived that present information to the user, usually
+called `views'.  The principal distinctions between a (base) table and
+a view are
+\begin{itemize}
+  \item Using \code{DROP} on a table removes the data, whereas using
+    it on a view merely removes the convenient access to a
+    representation of the data.
+  \item The access permission (\emph{privilege}) of a view can be very
+    different from those of a table: this is commonly used to hide
+    sensitive information.
+\end{itemize}
+A view can contain a subset of the information available in a single
+table or combine information from two or more tables.
+
+Further, some DBMSs distinguish between tables and views generated by
+ordinary users and \emph{system tables} used by the DBMS itself.
+Where present, this distinction is reflected in the result of
+\code{sqlTable()} calls.
+
+Some DBMSs support \emph{synonyms} and/or \emph{aliases} which are
+simply alternative names for an existing table/view/synonym, often
+those in other schemas (see below).
+
+Typically tables, views, synonyms and aliases share a name space and
+so must have a name that is unique (in the enclosing schema where
+schemas are implemented).
+
+
+\section{Writing to a Database}
+
+To create or update a table in a database some more details need to be
+considered.  For some systems, all table and column names need to be
+lower case (e.g.{} PostgreSQL, MySQL on Windows) or upper case (e.g.{}
+some versions of Oracle).  To make this a little easier, the
+\code{odbcConnect} function allows a remapping of table names to be
+specified, and this happens by default for DBMSs where remapping is
+known to be needed.
+
+The main tool to create a table is \code{sqlSave}.  It is safest to
+use this after having removed any existing table of the same name,
+which can be done by
+\begin{example}
+sqlDrop(ch, "\var{table\_name}", errors = FALSE)
+\end{example}
+Then in the simplest usage
+\begin{example}
+sqlSave(ch, \var{some\_data\_frame})
+\end{example}
+creates a new table whose name is the name of the data frame (remapped
+to upper or lower case as needed) and with first column
+\code{rownames} the row names of the data frame, and remaining columns
+the columns of the data frame (with names remapped as necessary).
+For the many options, see the help page.
+
+\code{sqlSave} works well when asked to write integer, numeric and
+reasonable-length\footnote{which of course depends on the DBMS.
+  Almost all have an implementation of \code{varchar} that allows up
+  to 255 bytes or characters, and some have much larger limits.
+  Calling \code{sqlTypeInfo} will tell you about the data type
+  limits.} character strings to the database.  It needs some help with
+other types of columns in mapping to the DBMS-specific types of
+column.  For some drivers it can do a good job with date and date-time
+columns; in others it needs some hints (and e.g.{} for Oracle dates
+are stored as date-times).  The files in the \code{RIfxDB/tests}
+directory in the sources and the installed file \code{tests.R} provide
+some examples.  One of the options is the \code{fast} argument: the
+default is \code{fast = TRUE} which transfers data in binary format: the
+alternative is \code{fast = FALSE} which transfer data as character
+strings a row at a time---this is slower but can work better with some
+drivers (and worse with others).
+
+The other main tool for writing is \code{sqlUpdate} which is used to
+change rows in an existing table.  Note that \pkg{RIfxDB} only does
+this in a simple fashion, and on up-market DBMSs it may be better to
+set cursors and use direct SQL queries, or at least to control
+transactions by calls to \code{odbcSetAutoCommit} and
+\code{odbcEndTran}.  The basic operation of \code{sqlUpdate} is to
+take a data frame with the same column names (up to remapping) as some
+or all of the columns of an existing table: the values in the data
+frame are then used either to replace entries or to create new rows in
+the table.
+
+Rows in a DBMS table are in principle unordered and so cannot be
+referred to by number: the sometimes tricky question is to know what
+rows are to replaced.  We can help the process by giving one or more
+\code{index} columns whose values must match: for a data frame the row
+names are often a good choice.  If no \code{index} argument is
+supplied, a suitable set of columns is chosen based on the properties
+of the table.
+
+\subsection{Primary keys and indices}
+
+When a table is created (or afterwards) it can be given additional
+information to enable it to be used effectively or efficiently.
+
+\emph{Primary keys} are one (usually) or more columns that provide a
+reliable way to reference rows in the table: values of the primary key
+must be unique and not \code{NULL} (SQL parlance for `missing').
+Primary keys in one table are also used as \emph{foreign keys} in
+another table: this ensure that e.g.{} values of \code{customer\_id}
+only take values which are included in the primary key column of that
+name in table \code{customers}.  Support of foreign keys is patchy:
+some DBMSs (e.g,{} MySQL prior to 6.0) accept specifications but
+ignore them.
+
+\pkg{RIfxDB} allows primary keys to be set as part of the
+\code{sqlSave()} function when it creates a table: otherwise they can
+be set by \code{sqlQuery()} in DBMS-specific ways (usually by
+\code{ALTER TABLE}).
+
+Columns in a table can be declared as \code{UNIQUE}: primary keys and
+such columns are usually used as the basis for table indices, but
+other indices (sometimes called \emph{secondary indices}) can be
+declared by a \code{CREATE INDEX} SQL command.  Whether adding primary
+keys or other indices has any effect on performance depends on the
+DBMS and the query.
+
+\section{Data types}
+
+This can be confusing: R has data types (including \code{character},
+\code{double}, \code{integer} and various classes including
+\code{Date} and \code{POSIXct}), ODBC has both C and SQL data types,
+the SQL standards have data types and so do the various DBMSs
+\emph{and they all have different names} and different usages of the
+same names.
+
+Double- and single-precision numeric values and 32- and 16-bit
+integers (only) are transferred as binary values, and all other types
+as character strings.  However, unless \code{as.is = TRUE},
+\code{sqlGetResults} (used by all the higher-level functions to return
+a data frame) converts character data to a date/date-time class or
+\emph{via} \code{type.convert}.
+
+You can find out the DBMS names for the data types used in the columns
+of a table by a call to \code{sqlColumns}, and further information is
+given on those types in the result of \code{sqlTypeInfo}.  For example
+in MySQL,
+\begin{smallexample}
+  TABLE_CAT TABLE_SCHEM TABLE_NAME COLUMN_NAME DATA_TYPE TYPE_NAME COLUMN_SIZE
+1    ripley        <NA>  USArrests       State        12   varchar         255
+2    ripley        <NA>  USArrests      Murder         8    double          15
+3    ripley        <NA>  USArrests     Assault         4   integer          10
+4    ripley        <NA>  USArrests    UrbanPop         4   integer          10
+5    ripley        <NA>  USArrests        Rape         8    double          15
+  BUFFER_LENGTH DECIMAL_DIGITS NUM_PREC_RADIX NULLABLE REMARKS COLUMN_DEF
+1           255             NA             NA        0                 ''
+2             8             NA             NA        1               <NA>
+3             4              0             10        1               <NA>
+4             4              0             10        1               <NA>
+5             8             NA             NA        1               <NA>
+  SQL_DATA_TYPE SQL_DATETIME_SUB CHAR_OCTET_LENGTH ORDINAL_POSITION IS_NULLABLE
+1            12               NA               255                1          NO
+2             8               NA                NA                2         YES
+3             4               NA                NA                3         YES
+4             4               NA                NA                4         YES
+5             8               NA                NA                5         YES
+\end{smallexample}
+This gives the DBMS data by name and by number (twice, once the number
+used in the DBMS and once that used by SQL---they agree here).  Other
+things of interest here are the column size, which gives the maximum
+size of the character representation, and the two columns about
+`nullable' which indicate if the column is allowed to contain missing
+values (SQL \code{NULL}s).
+
+The result of \code{sqlTypeInfo} has 19 columns and in the version of
+MySQL used here, 52 types.  We show a small subset of the more common types:
+\begin{smallexample}
+> sqlTypeInfo(channel)[<...>, c(1:3,7,16)]
+     TYPE_NAME DATA_TYPE COLUMN_SIZE NULLABLE SQL_DATATYPE
+1         bit        -7           1        1           -7
+2     tinyint        -6           3        1           -6
+6      bigint        -5          19        1           -5
+18       text        -1       65535        1           -1
+19 mediumtext        -1    16777215        1           -1
+20   longtext        -1  2147483647        1           -1
+22       char         1         255        1            1
+23    numeric         2          19        1            2
+24    decimal         3          19        1            3
+25    integer         4          10        1            4
+37   smallint         5           5        1            5
+41     double         6          15        1            6
+43      float         7           7        1            7
+45     double         8          15        1            8
+47       date        91          10        1            9
+48       time        92           8        1            9
+49       year         5           4        1            5
+50   datetime        93          21        1            9
+51  timestamp        93          14        0            9
+52    varchar        12         255        1           12
+\end{smallexample}
+Note that there are both duplicate type names and duplicate type numbers.
+
+Most DBMSs started with their own data types and later mapped the
+standard SQL data types on to them, although these may only be
+partially implemented.  Some DBMSs allow user-defined data types, for
+example enumerations.
+
+Commonly used data types fall into a number of groups:
+\begin{description}
+\item[Character types] Character types can be classified three ways:
+  fixed or variable length, by the maximum size and by the character
+  set used.  The most commonly used types\footnote{the SQL names for
+  these are \code{CHARACTER VARYING} and \code{CHARACTER}, but these
+  are too cumbersome for routine use.} are \code{varchar} for short
+  strings of variable length (up to some maximum) and \code{char} for
+  short strings of fixed length (usually right-padded with spaces).
+  The value of `short' differs by DBMS and is at least 254, often a
+  few thousand---often other types will be available for longer
+  character strings.  There is a sanity check which will allow only
+  strings of up to 65535 bytes when reading: this can be removed by
+  recompiling \pkg{RIfxDB}.
+
+  Many other DBMSs have separate types to hold Unicode character
+  strings, often with names like \code{nvarchar} or \code{wvarchar}.
+  Note that currently \pkg{RIfxDB} only uses the current locale for
+  character data, which could be UTF-8 (and will be on macOS and in
+  many cases on Linux and other Unix-alikes), but is never UCS-2 as
+  used on Windows.  So if character data is stored in the database in
+  Unicode, it will be translated (with a possible loss of information)
+  in non-Unicode locales.  (This may change in future versions of
+  \pkg{RIfxDB}.)
+
+  Some DBMSs such as PostgreSQL and Microsoft SQL Server allow
+  variable-length character strings of length only limited by
+  resources.  These do not fit well with the ODBC model that requires
+  buffers to be allocated to transfer character data, and so such
+  types may be subjected (by the ODBC driver) to a fixed limit or not
+  work at all.
+
+\item[Integer types] Most DBMSs have types for 32-bit (\code{integer},
+  synomyn \code{int}) and 16-bit (\code{smallint}) integers.  Some,
+  including MySQL, also have unsigned versions and 1-bit, 8-bit and
+  64-bit integer types: these further types would usually be
+  transferred as character strings and converted on reading to an
+  \code{integer} or \code{double} vector.
+
+  Type names \code{int2}, \code{int4} and \code{int8} are common as
+  synonyms for the basic type names.
+
+  The SQL standard does not require \code{integer} and \code{smallint}
+  to be binary (rather than decimal) types, but they almost always are
+  binary.
+
+  Note that 64-bit integers will be transferred as character strings
+  and read by \code{sqlGetResults} as character vectors or (for
+  $2^{31} \le |x| < 2^{53}$) as \code{double} vectors.
+
+\item[Floating-point types] The basic SQL floating-point types are 8
+  and 7 for double- and single-precision binary types.  The SQL names
+  are \code{double precision} and \code{real}, but beware of the
+  variety of names.  Type~6 is \code{float} in the standard, but is
+  used by some DBMSs\footnote{In Oracle the \code{FLOAT} type is a
+    decimal and not a binary type.} for single-precision and by some
+  for double-precision: the forms \code{float(24)} and
+  \code{float(53)} are also commonly supported.
+
+  You should not assume that these types can store \code{Inf},
+  \code{-Inf} or \code{NaN}, but they often can.
+
+\item[Other numeric types] It is common to store decimal quantities in
+  databases (e.g.{} currency amounts) and types 2 and 3 are for
+  decimals. Some DBMSs have specialized types to handle currencies,
+  e.g.{} \code{money} in Microsoft SQL Server.
+
+  Decimal types have a \emph{precision} (the maximum number of
+  significant decimal digits) and \emph{scale} (the position of the
+  decimal point).  \code{numeric} and \code{decimal} are usually
+  synonymous, but the distinction in the standards is that for
+  \code{numeric} the precision is exact whereas for \code{decimal} the
+  DBMS can use a larger value than that specified.
+
+  % e.g. Mimer
+  Some DBMSs have a type \code{integer(\var{p})} to represent up to
+  \code{\var{p}} decimal digits, and this may or may not be distinct
+  from \code{decimal(\var{p}, 0)}.
+
+  % 'currently' is from 5.1.x
+  DBMSs do not necessarily fully implement decimal types, e.g.{} MySQL
+  currently stores them in binary and used to store them as character
+  strings.
+
+\item[Dates and times] The handling of dates and times is very much
+  specific to the DBMS.  Some allow fractional seconds in date-times,
+  and some do not; some store timezones with date-times or always use
+  UTC and some do not, and so on.  Usually there are also types for
+  time intervals.
+
+  All such types are transferred as character strings in \pkg{RIfxDB}.
+
+\item[Binary types]
+  These are less common, and unsupported by \pkg{RIfxDB} prior to
+  version 1.3-0.  They parallel character types in that they are a
+  sequence of bytes of fixed or variable length, sometimes with
+  additional types for long sequences: there are separate ODBC types
+  for \code{SQL\_BINARY}, \code{SQL\_VARBINARY} and
+  \code{SQL\_LONGVARBINARY}.
+
+  Binary types can currently only be read as such, and they are
+  returned as column of class \code{"ODBC\_binary"} which is a list of
+  raw vectors.
+\end{description}
+
+% An example is BOOLEAN in Mimer
+It is possible (but rare) for the DBMS to support data types that the
+ODBC driver cannot handle.
+
+
+\subsection{Data types when saving a data frame}
+
+When \code{sqlSave} creates a table, there is some choice as to the
+SQL data types used.
+
+The default is to select the SQL data type from the R type via the
+\code{typeInfo} argument to \code{sqlSave}.  If this is not supplied
+(usual) a default mapping is looked up using \code{getSqlTypeInfo()}
+or by interrogating \code{\link{sqlTypeInfo()}}.  This will almost
+always produce the correct mapping for numeric, integer and character
+columns of up to 254 characters (or bytes).  In other cases (include
+dates and date-times) the desired SQL type can be specified for each
+column \emph{via} the argument \code{varTypes}, a named character
+vector with names corresponding to (some of) the names in the data
+frame to be saved.
+
+Only a very few DBMSs have a logical data type and the default mapping
+is to store R logical vectors as \code{varchar(5)}.  For
+others DBMSs \code{BIT}, \code{TINYINT} or an enumeration type could
+be used (but the column may be need to be converted to and from a
+suitable representation).  For example, in MySQL we could use
+\code{enum('FALSE', 'TRUE')}, but this is actually stored as
+\code{char(5)}.  Note that to represent \code{NA} the SQL data type
+chosen needs to be nullable, which \code{BIT} often is not.
+(Mimer has a nullable data type \code{BOOLEAN} but this is not
+supported by the ODBC client.)
+
+\subsection{ODBC data types}
+
+ODBC defines two sets of data types: \emph{SQL data types} and \emph{C
+  data types}. SQL data types indicate the data types of data stored
+at the data source using standard names. C data types indicate the
+data types used in the compiled code in the application (here
+\pkg{RIfxDB}) when transferring data and are the same for all drivers.
+
+The ODBC SQL data types are abstractions of the data types discussed
+above with names like \code{SQL\_INTEGER}.  They include
+\code{SQL\_LONGVARCHAR} for large character types and
+\code{SQL\_WVARCHAR} for Unicode character types.  It is usually these
+types that are returned (by number) in the \code{SQL\_DATA\_TYPE}
+column of the result of \code{sqlColumns} and \code{SQL\_DATATYPE}
+column of the result of \code{sqlTypeInfo}.  The mapping from names to
+numbers is given in table~1.
+
+\begin{table}[tbp]
+\qquad{\small\tt \begin{tabular}{lrlr}
+SQL\_CHAR&1&SQL\_LONGVARCHAR&-1\\
+SQL\_NUMERIC&2&SQL\_BINARY&-2\\
+SQL\_DECIMAL&3&SQL\_VARBINARY&-3\\
+SQL\_INTEGER&4&SQL\_LONGVARBINARY&-4\\
+SQL\_SMALLINT&5&SQL\_BIGINT&-5\\
+SQL\_FLOAT&6&SQL\_TINYINT&-6\\
+SQL\_REAL&7&SQL\_BIT&-7\\
+SQL\_DOUBLE&8&SQL\_WCHAR&-8\\
+SQL\_DATETIME&9&SQL\_WVARCHAR&-9\\
+SQL\_INTERVAL&10&SQL\_WLONGVARCHAR&-10\\
+SQL\_TIMESTAMP&11&SQL\_GUID&-11\\
+SQL\_VARCHAR&12\\
+SQL\_TYPE\_DATE&91\\
+SQL\_TYPE\_TIME&92\\
+SQL\_TYPE\_TIMESTAMP&93
+\end{tabular}}
+\caption{Mapping between ODBC SQL data type names and numbers.  (GUIDs
+  are 16-byte numbers, Microsoft's implementation of UUIDs.)}
+\end{table}
+
+The only ODBC C data types currently used by \pkg{RIfxDB} are
+\code{SQL\_C\_DOUBLE}, \code{SQL\_C\_SLONG} (32-bit signed integers)
+and \code{SQL\_C\_CHAR} for reading and writing, and
+\code{SQL\_C\_FLOAT} (single-precision), \code{SQL\_C\_SSHORT} (16-bit
+signed integers) and \code{SQL\_C\_BINARY} for reading from the
+database.
+
+\url{https://msdn.microsoft.com/en-us/library/ms713607%28VS.85%29.aspx}
+is the defintiive source of information about ODBC data types.
+
+
+\section{Schemas and Catalogs}
+
+This is a more technical section: few users will need to deal with
+these concepts.
+
+\sQuote{Schemas}\footnote{which is the usual plural in this technical
+  usage, athough \emph{schemata} is more usual in English.} are
+collections of objects (such as tables and views) within a database
+that are supported by some DBMSs: often a separate schema is
+associated with each user (and \sQuote{schema} in ODBC~3 replaced
+\sQuote{owner} in ODBC~2).  In SQL-92, schemas are collected in a
+\sQuote{catalog} which is often implemented as a database.  Where
+schemas are implemented, there is a \emph{current schema} used to find
+unqualified table names, and tables in other schemas can be referred
+to within SQL queries using the \code{\var{schema}.\var{table}}
+notation.  You can think of a schema as analogous to a name space; it
+allows related objects to be grouped together without worrying about
+name clashes with other groups.  (Some DBMSs will search for
+unqualified table names in a search path: see the detailed
+descriptions below.)
+
+Note that \sQuote{schema} is used in another sense in the database
+literature, for the design of a database and in particular of tables,
+views and privileges.
+
+Here are some details of various DBMSs' interpretations of
+\code{catalog} and \code{schema} current at the time of writing (mid
+2009).  (These descriptions are simplistic, and in some cases
+experimental observations.)
+
+\begin{itemize}
+  \item Informix uses schemas as name spaces for objects that may lie on
+    different databases: using \emph{aliases} allows objects to be in
+    more than one schema.  The initial current schema is named the
+    same as the user (\code{SQLID} in DB2 parlance), but users can
+    create additional schemas with \code{CREATE SCHEMA} statements.
+\end{itemize}
+
+It is often possible to use \code{sqlTables} to list the available
+catalogs or schemas: see its help page for the driver-specific
+details.
+
+\pkg{RIfxDB} usually works with tables in the current schema, but unless
+the connection was opened with \code{interpretDot = FALSE} most
+functions will attempt to interpret the `dotted name' notation.
+The interpretation depends on the DBMS: the SQL-92 meaning is
+\code{\var{schema}.\var{table}} and this is accepted by PostgreSQL,
+Microsoft SQL Server, Oracle, DB2 and Mimer.  However, MySQL uses
+\code{\var{database}.\var{table}}, and the functions
+try\footnote{currerntly this is stymied by bugs in the ODBC driver,
+  so \code{SQLColumns} is unable to report on tables in specified
+  databases.}  that interpretation if they recognize a MySQL driver.
+Some DBMSs allow more than two components, but these are not currently
+supported by the \pkg{RIfxDB} functions.
+
+Functions \code{sqlTables}, \code{sqlColumns} and
+\code{sqlPrimaryKeys} have arguments \code{catalog} and \code{schema}
+which in principle allow tables in other schemas to be listed or
+examined: however these are only partially implemented in many current
+ODBC drivers.  See the help page for \code{sqlTables} for some further
+details.
+
+For other uses, the trick is to select the schema(s) you want to use,
+which is done \emph{via} an SQL statement sent by \code{sqlQuery}.
+For Oracle you can set the default schema (owner) by
+\begin{example}
+\code{ALTER SESSION SET CURRENT\_SCHEMA = \var{schema}}
+\end{example}
+% http://sqlzoo.net/howto/source/z.dir/tip988922/oracle
+whereas for PostgreSQL the search path can be changed \emph{via}
+\begin{example}
+\code{SET search\_path TO \var{schema1},\var{schema2}}.
+\end{example}
+% see also https://stat.ethz.ch/pipermail/r-help/2008-May/161304.html
+In DB2, creating an alias in the current schema can be used to access
+tables in other schemas, and a \code{CURRENT SCHEMA} query can be used
+to change the current schema.  In MySQL and Microsoft SQL Server a
+database can be selected by a \code{USE \var{database}} query.
+
+\section{Internationalization Issues}
+
+Internationalization issues are made more complex by ODBC being a
+client-server system, and the ODBC client (\pkg{RIfxDB}) and the server
+may be running on different machines with different OSes on different
+continents. So the client may need some help.
+
+In most cases numeric data are transferred to and from R in binary
+form, so the representation of the decimal point is not an issue.  But
+in some cases it could be (e.g.{} decimal rather than binary SQL data
+types will be transferred as character strings) and then the decimal
+point to be used will be taken from \code{options("dec")}: if unset
+this is set when \pkg{RIfxDB} is loaded from the setting of the current
+locale on the machine running R (\emph{via} \code{Sys.localeconv}).
+Some ODBC drivers (e.g.{} for Microsoft SQL Server, Oracle) allow the
+locale (`NLS') to be used for numeric values to be selected for the
+connection.
+
+The other internationalization issue is the character encoding used.
+When R and the DBMS are running on the same machine this is unlikely
+to be an issue, and in many cases the ODBC driver has some options to
+translate character sets.  SQL is an ANSI (US) standard, and DBMSs
+tended to assume that character data was ASCII or perhaps 8-bit.  More
+recently DBMSs have started to (optionally or by default) to store
+data in Unicode, which unfortunately means UCS-2 on Windows and UTF-8
+elsewhere.  So cross-OS solutions are not guaranteed to work, but most
+do.
+
+Encoding issues are best resolved in the ODBC driver or in DBMS
+settings.  In the unusual case that this cannot be done, the
+\code{DBMSencoding} argument to \code{odbcDriverConnect} allows for
+recoding when sending data to or from the ODBC driver and thence the DBMS.
+
+
+\newpage
+\appendix
+\section{Installation}
+
+\pkg{RIfxDB} is simple to install, and binary distributions are
+available for Windows from CRAN.
+
+To install from the sources, an \emph{ODBC Driver Manager} is
+required.  Windows normally comes with one (it is part of MDAC and can
+be installed separately if required).  macOS from 10.2 to 10.8 shipped
+with \code{iODBC} (\url{http://www.iodbc.org}, this is also available
+for other Unix-alikes) but from 10.9 the headers are no longer
+included in the macOS SDK.
+
+For other systems the driver manager of choice is likely to be
+\code{unixODBC}, part of almost all Linux distributions and with
+sources downloadable from \url{http://www.unixODBC.org}.  In Linux
+binary distributions it is likely that package \code{unixODBC-devel}
+or \code{unixodbc-dev} or some such will be needed.
+
+Both \code{unixODBC} and \code{iODBC} can be installed from the
+sources under macOS: they need ODBC drivers compiled for the driver
+manager in use.  At least for macOS 10.9--12, all that is required for
+\code{iODBC} is to unpack the sources and use their headers by
+something like
+\begin{example}
+ODBC_INCLUDE=/path/to/libiodbc-srcs/include' R CMD INSTALL RIfxDB
+\end{example}
+\noindent
+and the \code{iODBC} sources used by Apple can be found at
+\url{https://opensource.apple.com}.
+
+In most cases the package's \code{configure} script will find the
+driver manager files, and the package will install with no extra
+settings.  However, if further information is required, use
+\code{--with-odbc-include} and \code{--with-odbc-lib} or environment
+variables \code{ODBC\_INCLUDE} and \code{ODBC\_LIBS} to set the include
+and library paths as needed.  A specific ODBC driver manager can be
+specified by the \code{--with-odbc-manager} \code{configure} option,
+with likely values \code{odbc} or \code{iodbc}: if this is done for
+\code{odbc} and the program \code{odbc\_config} is found, it is used to
+set the libpath as a last resort (it is often wrong), and to add any
+additional \code{CFLAGS}.
+
+
+\clearpage
+\section{Internals}
+
+The appendix is in part an \emph{aide memoire} for the maintainer, but
+may interest the curious user.
+
+RIfxDB connection objects are an integer with several attributes: they
+are numbered consecutively in the current session.  For example
+\begin{smallexample}
+> channel <- odbcConnect("test")
+> unclass(channel)
+[1] 1
+attr(,"connection.string")
+[1] "DATABASE=ripley;DESCRIPTION=myodbc;DSN=test;OPTION=0;PORT=3306;SERVER=localhost;"
+attr(,"handle\_ptr")
+<pointer: 0x233e6c0>
+attr(,"case")
+[1] "nochange"
+attr(,"id")
+[1] 11371
+attr(,"believeNRows")
+[1] TRUE
+attr(,"colQuote")
+[1] "`"
+attr(,"tabQuote")
+[1] "`"
+attr(,"encoding")
+[1] ""
+attr(,"rows\_at\_time")
+[1] 100
+attr(,"isMySQL")
+[1] FALSE
+\end{smallexample}
+Most of the attributes record the arguments of
+\code{odbcDriverConnect}.  The \code{"connection.string"} attribute is
+as returned by \code{SQLDriverConnect} and list driver-specific
+parameters separated (and perhaps terminated) by a semicolon.  The
+\code{"id"} attribute is a random integer used for integrity checks
+(and in particular to reject connection objects should they be saved
+and restored in a different session).  The \code{"isMySQL"} attribute
+is used both to select the default quote character and the
+interpretation of \code{qualifier.table} names.
+
+The main structure of the connection is kept as a C \code{struct}, a
+pointer to which is passed around as the R external pointer
+\code{"handle\_ptr"}.  This has a finalizer that will close the
+connection when there is no longer an R object referring to it
+(including at the end of the R session), with a warning unless the
+connection has already been closed by \code{close} or
+\code{odbcClose}.  In addition, a C-level table keeps the pointers of
+the first 1000 connections of an R session, to enable
+\code{odbcCloseAll} to close them.
+
+The \code{struct} is currently defined as
+\begin{smallexample}
+typedef struct rifxdbHandle \{
+    SQLHDBC     hDbc;         /* connection handle */
+    SQLHSTMT    hStmt;        /* statement handle */
+    SQLLEN      nRows;        /* number of rows and columns in result set */
+    SQLSMALLINT nColumns;
+    int         channel;      /* as stored on the R-level object */
+    int         id;           /* ditto */
+    int         useNRows;     /* value of believeNRows */
+
+    /* entries used to bind data for result sets and updates */
+    COLUMNS     *ColData;
+    int         nAllocated;
+    SQLUINTEGER	rowsFetched;  /* use to indicate the number of rows fetched */
+    SQLUINTEGER	rowArraySize; /* use to indicate the number of rows we expect back */
+    SQLUINTEGER	rowsUsed;     /* for when we fetch more than we need */
+
+    SQLMSG      *msglist;     /* root of linked list of messages */
+    SEXP        extPtr;       /* the external pointer address */
+\} RIfxDBHandle, *pRIfxDBHandle;
+\end{smallexample}
+Most ODBC operations work by sending a query, explicitly or implicitly
+via e.g.{} \code{sqlColumns}, and this creates a \emph{result set}
+which is transferred to an R data frame by \code{sqlGetResults}.
+\code{nRows} and \code{nCols} indicate the size of the pending result
+set, with \code{nCols = -1} used if there are no pending results.
+
+ODBC works with various \emph{handles}.  There is a \code{SQLHENV}
+handle for the environment that \code{RIfxDB} opens when a connection
+is first opened or DSNs are listed---its main use is to request ODBC~3
+semantics.  Then each connection has a \code{SQLHDBC} handle, and each
+query (statement) a \code{SQLHSTMT} handle.  Argument
+\code{literal=TRUE} of \code{sqlTables} and \code{sqlColumns} is used
+to set the \verb}SQL_ATTR_METADATA_ID} attribute of the statement
+handle to be true.
+
+All the functions\footnote{ \code{odbcQuery}, \code{sqlColumns},
+  \code{sqlPrimaryKeys}, \code{sqlTables} and \code{sqlTypeInfo}.}
+that create a result set call C function \code{cachenbind}.  This
+allocates buffers under the \code{colData} pointer and binds the
+result set to them by \code{SQLBindCol}.  Then when
+\code{sqlGetResults} calls the C function \code{SQLFetch} or
+\code{SQLFetchScroll} the results for one or more (up to
+\code{MAX\_ROWS\_FETCH = 1024}) rows are loaded into the buffers and
+then copied into R vectors.
+
+Prior to \pkg{RIfxDB} 1.3-0 the default was to fetch a row at a time,
+but it is now to fetch up to 100 rows at a time.  Entries
+\code{rowsArraySize} and \code{rowsFetched} are used to indicate how
+many rows were requested and how many were available.  Since e.g.{}
+\code{sqlFetch} allows a maximum number of rows to be returned in the
+data frame, \code{rowsUsed} indicates how many of the rows last
+fetched have so far been returned to R.
+
+The buffers are part of the \code{ColData} entry, which is an array of
+\code{COLUMNS} structures, one of each column in the result set. These
+have the form
+\begin{smallexample}
+typedef struct cols \{
+    SQLCHAR     ColName[256];
+    SQLSMALLINT NameLength;
+    SQLSMALLINT DataType;
+    SQLULEN     ColSize;
+    SQLSMALLINT DecimalDigits;
+    SQLSMALLINT Nullable;
+    char        *pData;
+    int         datalen;
+    SQLDOUBLE   RData [MAX\_ROWS\_FETCH];
+    SQLREAL     R4Data[MAX\_ROWS\_FETCH];
+    SQLINTEGER  IData [MAX\_ROWS\_FETCH];
+    SQLSMALLINT I2Data[MAX\_ROWS\_FETCH];
+    SQLLEN      IndPtr[MAX\_ROWS\_FETCH];
+\} COLUMNS;
+\end{smallexample}
+The first six entries are returned by a call to \code{SQLDescribeCol}:
+\code{DataType} is used to select the buffer to use.  There are
+separate buffers for double-precision, single-precision, 32-bit and
+16-bit integer and character/byte data.  When character/data buffers
+are allocated, \code{datalen} records the length allocated per row
+(which is based on the value returned as \code{ColSize}).  The
+\code{IndPtr} value is used to record the actual size of the item
+in the current row for variable length character and binary types, and
+for all nullable types the special value \code{SQL\_NULL\_DATA} (-1)
+indicates an SQL null value.
+
+The other main C-level operation is to send data to the ODBC driver
+for \code{sqlSave} and \code{sqlUpdate}.  These use \code{INSERT INTO}
+and \code{UPDATE} queries respectively, and for \code{fast = TRUE} use
+parametrized queries.  So we have the queries (split across lines for
+display)
+\begin{smallexample}
+> sqlSave(channel, USArrests, rownames = "State", addPK = TRUE, verbose = TRUE)
+Query: CREATE TABLE "USArrests"
+  ("State" varchar(255) NOT NULL PRIMARY KEY, "Murder" double, "Assault" integer,
+  "UrbanPop" integer, "Rape" double)
+Query: INSERT INTO "USArrests"
+  ( "State", "Murder", "Assault", "UrbanPop", "Rape" ) VALUES ( ?,?,?,?,? )
+Binding: 'State' DataType 12, ColSize 255
+Binding: 'Murder' DataType 8, ColSize 15
+Binding: 'Assault' DataType 4, ColSize 10
+Binding: 'UrbanPop' DataType 4, ColSize 10
+Binding: 'Rape' DataType 8, ColSize 15
+Parameters:
+...
+
+> sqlUpdate(channel, foo, "USArrests", verbose=TRUE)
+Query: UPDATE "USArrests" SET "Assault"=? WHERE "State"=?
+Binding: 'Assault' DataType 4, ColSize 10
+Binding: 'State' DataType 12, ColSize 255
+Parameters:
+...
+\end{smallexample}
+At C level, this works by calling \code{SQLPrepare} to record the
+insert/update query on the statement handle, then calling
+\code{SQLBindParameter} to bind a buffer for each column with values
+to be sent, and finally in a loop over rows copying the data into the
+buffer and calling \code{SQLExecute} on the statement handle.
+
+The same buffer structure is used as when retrieving result sets.
+The difference is that the arguments which were ouptuts from
+\code{SQLBindCol} and inputs to \code{SQLBindParameter}, so we need to
+use \code{sqlColumns} to retrieve the column characteristics of the
+table and pass these down to the C interface.
+\end{document}
