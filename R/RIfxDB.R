@@ -19,41 +19,43 @@
 #  A copy of the GNU General Public License is available at
 #  http://www.r-project.org/Licenses/
 #
-#  Low level wrappers for odbc driver
 #
 #
 #
 .onLoad <- function(libname, pkgname)
 {
-    if(is.null(getOption("dec")))
-        options(dec = Sys.localeconv()["decimal_point"])
+
+     if(is.null(getOption("dec")))
+          options(dec = Sys.localeconv()["decimal_point"])
+    #library.dynam("RIfxDB", package, lib )
+        
 }
 
 .onUnload <- function(libpath)
 {
-    odbcCloseAll()
+    IfxdbCloseAll()
     .Call(C_RIfxDBTerm)
     library.dynam.unload("RIfxDB", libpath)
 }
 
-odbcGetErrMsg <- function(channel)
+IfxdbGetErrMsg <- function(channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     err <- .Call(C_RIfxDBGetErrMsg, attr(channel, "handle_ptr"))
     .Call(C_RIfxDBClearError, attr(channel, "handle_ptr"))
     return(err)
 }
 
-odbcClearError <- function(channel)
+IfxdbClearError <- function(channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBClearError, attr(channel, "handle_ptr"))
     invisible()
 }
 
-odbcReConnect <- function(channel, ...)
+IfxdbReConnect <- function(channel, ...)
 {
     if(!inherits(channel, "RIfxDB"))
         stop("Argument 'channel' must inherit from class RIfxDB")
@@ -76,10 +78,10 @@ odbcReConnect <- function(channel, ...)
 }
 
 
-odbcConnect <- function (dsn, uid = "", pwd = "", ...)
+IfxdbConnect <- function (dsn, uid = "", pwd = "", ...)
 {
     Call <- match.call(); Call$uid <- Call$pwd <- NULL
-    Call[[1]] <- quote(RIfxDB::odbcDriverConnect)
+    Call[[1]] <- quote(RIfxDB::IfxdbDriverConnect)
     st <- paste("DSN=", dsn, sep="")
     if(nchar(uid)) st <- paste(st, ";UID=", uid, sep="")
     if(nchar(pwd)) st <- paste(st, ";PWD=", pwd, sep="")
@@ -87,7 +89,7 @@ odbcConnect <- function (dsn, uid = "", pwd = "", ...)
     eval.parent(Call)
 }
 
-odbcDriverConnect <-
+IfxdbDriverConnect <-
     function (connection = "", case = "nochange", believeNRows = TRUE,
               colQuote, tabQuote = colQuote, interpretDot = TRUE,
               DBMSencoding = "", rows_at_time = 100, readOnlyOptimize = FALSE)
@@ -96,7 +98,7 @@ odbcDriverConnect <-
    stat <- .Call(C_RIfxDBDriverConnect, as.character(connection), id,
                  as.integer(believeNRows), as.logical(readOnlyOptimize))
    if(stat < 0L) {
-       warning("ODBC connection failed")
+       warning("Ifxdb connection failed")
        return(stat)
    }
    Call <- match.call()
@@ -133,21 +135,21 @@ odbcDriverConnect <-
              call = Call)
 }
 
-odbcQuery <-
+IfxdbQuery <-
     function(channel, query, rows_at_time = attr(channel, "rows_at_time"))
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     if(nchar(enc <- attr(channel, "encoding"))) query <- iconv(query, to=enc)
     .Call(C_RIfxDBQuery, attr(channel, "handle_ptr"), as.character(query),
           as.integer(rows_at_time))
 }
 
-odbcUpdate <-
+IfxdbUpdate <-
     function(channel, query, data, params, test = FALSE, verbose = FALSE,
              nastring = NULL)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     ## sanity checks!
     if(length(params) == 0L || nrow(params) == 0L)
@@ -182,10 +184,10 @@ odbcUpdate <-
 ## tableType is a character vector containing one of more of
 ## "TABLE" "VIEW" "SYSTEM TABLE" "ALIAS" "SYNONYM" (may be single-quoted).
 ## http://publib.boulder.ibm.com/infocenter/dzichelp/v2r2/index.jsp?topic=/com.ibm.db29.doc.odbc/db2z_fntables.htm
-odbcTables <- function(channel, catalog = NULL, schema = NULL,
+IfxdbTables <- function(channel, catalog = NULL, schema = NULL,
                         tableName = NULL, tableType = NULL, literal = FALSE)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     tableType  <- if(is.character(tableType) && length(tableType))
         paste(tableType, collapse=",") else NULL
@@ -193,71 +195,71 @@ odbcTables <- function(channel, catalog = NULL, schema = NULL,
           catalog, schema, tableName, tableType, as.logical(literal))
 }
 
-odbcColumns <- function(channel, table, catalog = NULL, schema = NULL,
+IfxdbColumns <- function(channel, table, catalog = NULL, schema = NULL,
                         literal = FALSE)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBColumns, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema, as.logical(literal))
 }
 
-odbcSpecialColumns <- function(channel, table, catalog = NULL, schema = NULL)
+IfxdbSpecialColumns <- function(channel, table, catalog = NULL, schema = NULL)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBSpecialColumns, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema)
 }
 
-odbcPrimaryKeys <- function(channel, table, catalog = NULL, schema = NULL)
+IfxdbPrimaryKeys <- function(channel, table, catalog = NULL, schema = NULL)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
         stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBPrimaryKeys, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema)
 }
 
-close.RIfxDB <- function(con, ...) invisible(ifelse(odbcClose(con), 0L, 1L))
+close.RIfxDB <- function(con, ...) invisible(ifelse(IfxdbClose(con), 0L, 1L))
 
-odbcClose <- function(channel)
+IfxdbClose <- function(channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("argument is not an open RIfxDB channel")
     res <- .Call(C_RIfxDBClose, attr(channel, "handle_ptr"))
     if(res > 0) invisible(FALSE) else {
-        warning(paste(odbcGetErrMsg(channel), sep="\n"))
+        warning(paste(IfxdbGetErrMsg(channel), sep="\n"))
         FALSE
     }
     invisible(TRUE)
 }
 
-odbcCloseAll <- function()
+IfxdbCloseAll <- function()
 {
     .Call(C_RIfxDBCloseAll)
     invisible()
 }
 
-odbcFetchRows <-
+IfxdbFetchRows <-
     function(channel, max = 0, buffsize = 1000,
              nullstring = NA_character_, believeNRows = TRUE)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBFetchRows, attr(channel, "handle_ptr"), max, buffsize,
           as.character(nullstring), believeNRows)
 }
 
-odbcCaseFlag <- function (channel)
+IfxdbCaseFlag <- function (channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     attr(channel, "case")
 }
 
-odbcGetInfo <- function(channel)
+IfxdbGetInfo <- function(channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("argument is not an open RIfxDB channel")
     res <- .Call(C_RIfxDBGetInfo, attr(channel, "handle_ptr"))
     names(res) <- c("DBMS_Name", "DBMS_Ver", "Driver_ODBC_Ver",
@@ -266,15 +268,15 @@ odbcGetInfo <- function(channel)
     res
 }
 
-odbcValidChannel <- function(channel)
+IfxdbValidChannel <- function(channel)
 {
     inherits(channel, "RIfxDB") && is.integer(channel) &&
     .Call(C_RIfxDBcheckchannel, channel, attr(channel, "id")) > 0
 }
 
-odbcClearResults <-  function(channel)
+IfxdbClearResults <-  function(channel)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
        stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBclearresults, attr(channel, "handle_ptr"))
     invisible()
@@ -289,23 +291,29 @@ print.RIfxDB <- function(x, ...)
     invisible(x)
 }
 
-odbcSetAutoCommit <- function(channel, autoCommit = TRUE)
+IfxdbSetAutoCommit <- function(channel, autoCommit = TRUE)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
          stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBSetAutoCommit, attr(channel, "handle_ptr"), autoCommit)
 }
 
-odbcEndTran <- function(channel, commit = TRUE)
+IfxdbEndTran <- function(channel, commit = TRUE)
 {
-    if(!odbcValidChannel(channel))
+    if(!IfxdbValidChannel(channel))
          stop("first argument is not an open RIfxDB channel")
     .Call(C_RIfxDBEndTran, attr(channel, "handle_ptr"), commit)
 }
 
-odbcDataSources <- function(type = c("all", "user", "system"))
+IfxdbDataSources <- function(type = c("all", "user", "system"))
 {
     type <- match.arg(type)
     type <- match(type, c("all", "user", "system"))
     .Call(C_RIfxDBListDataSources, type)
 }
+
+MyPi <- function() 
+{
+  .Call(C_MyPi)
+}
+

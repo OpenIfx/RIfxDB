@@ -1626,6 +1626,15 @@ SEXP RIfxDBListDataSources(SEXP stype)
     return ans;
 }
 
+SEXP MyPi()
+{
+	SEXP result = PROTECT(allocVector(REALSXP, 1));
+	REAL(result)[0] = 3.14159265359;
+	UNPROTECT(1);
+  
+	return result;
+}
+ 
 #include <R_ext/Rdynload.h>
 
 static const R_CallMethodDef CallEntries[] = {
@@ -1651,12 +1660,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"RIfxDBTypeInfo", (DL_FUNC)&RIfxDBTypeInfo, 2},
     {"RIfxDBListDataSources", (DL_FUNC)&RIfxDBListDataSources, 1},
     {"RIfxDBTerm", (DL_FUNC)&RIfxDBTerm, 0},
+    {"MyPi", (DL_FUNC)&MyPi, 0},
     {NULL, NULL, 0}
 };
 
-void R_init_RIfxDB(DllInfo *dll)
+void R_init_RIfxDB(DllInfo *dllInfo)
 {
-    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-    R_useDynamicSymbols(dll, FALSE);
-    R_forceSymbols(dll, TRUE);
+    R_registerRoutines(dllInfo, NULL, CallEntries, NULL, NULL);
+    // R_useDynamicSymbols(dllInfo, FALSE);
+    // R_forceSymbols(dllInfo, TRUE);
 }
+

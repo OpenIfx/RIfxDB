@@ -88,13 +88,13 @@ connections.
 The simplest way to make a connection is
 \begin{example}
 library(RIfxDB)
-ch <- odbcConnect("\var{some\_dsn}")
+ch <- IfxdbConnect("\var{some\_dsn}")
 \end{example}
 and when you are done with it,
 \begin{example}
 close(ch)
 # or if you prefer
-odbcClose(ch)
+IfxdbClose(ch)
 \end{example}
 The connection object \code{ch} is how you specify one of potentially
 many open connections, and is the first argument to all other
@@ -104,7 +104,7 @@ give some summary information.
 If the DBMS user and password are needed and not stored in the DSN,
 they can be supplied by e.g.{}
 \begin{example}
-ch <- odbcConnect("\var{some\_dsn}", uid = "\var{user}", pwd = "\var{****}")
+ch <- IfxdbConnect("\var{some\_dsn}", uid = "\var{user}", pwd = "\var{****}")
 \end{example}
 Users of the R GUI under Windows\footnote{This does not work from
   \code{Rterm.exe}.} have another possibility: if an incompletely
@@ -113,7 +113,7 @@ will pop up to allow it to be completed.
 % Something about security here?
 
 More flexibility is available \emph{via} function
-\code{odbcDriverConnect}, which works with a \emph{connection string}.
+\code{IfxdbDriverConnect}, which works with a \emph{connection string}.
 At its simplest it is
 \begin{example}
 "DSN=\var{dsn};UID=\var{uid};PWD=\var{pwd}"
@@ -214,7 +214,7 @@ perform common tasks in several commonly used DBMSs are available at
 
 % <<>>=
 % library(RIfxDB)
-% channel <- odbcConnect("test")
+% channel <- IfxdbConnect("test")
 % sqlSave(channel, USArrests, rownames = "State", verbose = TRUE)
 % sqlQuery(channel, paste("select State, Murder from USArrests",
 %                         "where Rape > 30 order by Murder"))
@@ -236,7 +236,7 @@ of double quotes.
 %More recent SQL standards allow \code{\$} and \code{\#} under some
 %circumstances.
 
-The \code{odbcConnnect} function allows the specification of the
+The \code{IfxdbConnnect} function allows the specification of the
 quoting rules for names \pkg{RIfxDB} itself sends, but sensible
 defaults\footnote{backticks for MySQL, \code{[ ]} for the Access and
   Excel convenience wrappers, otherwise ANSI double quotes.} are
@@ -292,7 +292,7 @@ To create or update a table in a database some more details need to be
 considered.  For some systems, all table and column names need to be
 lower case (e.g.{} PostgreSQL, MySQL on Windows) or upper case (e.g.{}
 some versions of Oracle).  To make this a little easier, the
-\code{odbcConnect} function allows a remapping of table names to be
+\code{IfxdbConnect} function allows a remapping of table names to be
 specified, and this happens by default for DBMSs where remapping is
 known to be needed.
 
@@ -333,8 +333,8 @@ The other main tool for writing is \code{sqlUpdate} which is used to
 change rows in an existing table.  Note that \pkg{RIfxDB} only does
 this in a simple fashion, and on up-market DBMSs it may be better to
 set cursors and use direct SQL queries, or at least to control
-transactions by calls to \code{odbcSetAutoCommit} and
-\code{odbcEndTran}.  The basic operation of \code{sqlUpdate} is to
+transactions by calls to \code{IfxdbSetAutoCommit} and
+\code{IfxdbEndTran}.  The basic operation of \code{sqlUpdate} is to
 take a data frame with the same column names (up to remapping) as some
 or all of the columns of an existing table: the values in the data
 frame are then used either to replace entries or to create new rows in
@@ -751,7 +751,7 @@ do.
 
 Encoding issues are best resolved in the ODBC driver or in DBMS
 settings.  In the unusual case that this cannot be done, the
-\code{DBMSencoding} argument to \code{odbcDriverConnect} allows for
+\code{DBMSencoding} argument to \code{IfxdbDriverConnect} allows for
 recoding when sending data to or from the ODBC driver and thence the DBMS.
 
 
@@ -809,7 +809,7 @@ may interest the curious user.
 RIfxDB connection objects are an integer with several attributes: they
 are numbered consecutively in the current session.  For example
 \begin{smallexample}
-> channel <- odbcConnect("test")
+> channel <- IfxdbConnect("test")
 > unclass(channel)
 [1] 1
 attr(,"connection.string")
@@ -834,7 +834,7 @@ attr(,"isMySQL")
 [1] FALSE
 \end{smallexample}
 Most of the attributes record the arguments of
-\code{odbcDriverConnect}.  The \code{"connection.string"} attribute is
+\code{IfxdbDriverConnect}.  The \code{"connection.string"} attribute is
 as returned by \code{SQLDriverConnect} and list driver-specific
 parameters separated (and perhaps terminated) by a semicolon.  The
 \code{"id"} attribute is a random integer used for integrity checks
@@ -849,9 +849,9 @@ pointer to which is passed around as the R external pointer
 connection when there is no longer an R object referring to it
 (including at the end of the R session), with a warning unless the
 connection has already been closed by \code{close} or
-\code{odbcClose}.  In addition, a C-level table keeps the pointers of
+\code{IfxdbClose}.  In addition, a C-level table keeps the pointers of
 the first 1000 connections of an R session, to enable
-\code{odbcCloseAll} to close them.
+\code{IfxdbCloseAll} to close them.
 
 The \code{struct} is currently defined as
 \begin{smallexample}
@@ -890,7 +890,7 @@ query (statement) a \code{SQLHSTMT} handle.  Argument
 to set the \verb}SQL_ATTR_METADATA_ID} attribute of the statement
 handle to be true.
 
-All the functions\footnote{ \code{odbcQuery}, \code{sqlColumns},
+All the functions\footnote{ \code{IfxdbQuery}, \code{sqlColumns},
   \code{sqlPrimaryKeys}, \code{sqlTables} and \code{sqlTypeInfo}.}
 that create a result set call C function \code{cachenbind}.  This
 allocates buffers under the \code{colData} pointer and binds the
