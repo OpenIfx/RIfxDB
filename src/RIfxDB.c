@@ -39,12 +39,14 @@
 #ifdef WIN32
 # include <windows.h>
 # undef ERROR
-  /* enough of the internals of graphapp objects to allow us to find the
-     handle of the RGui main window */
-typedef struct objinfo {
+   // enough of the internals of graphapp objects to allow us to find the
+   // handle of the RGui main window
+typedef struct objinfo 
+{
     int	kind, refcount;
     HANDLE	handle;
 } *window;
+
 __declspec(dllimport) window RConsole;
 #else
 # include <unistd.h>
@@ -97,13 +99,13 @@ __declspec(dllimport) window RConsole;
      Otherwise, they are (unsigned) long.
    */
 
-#ifndef HAVE_SQLLEN
-#define SQLLEN SQLINTEGER
-#endif
+// #ifndef HAVE_SQLLEN
+// #define SQLLEN SQLINTEGER
+// #endif
 
-#ifndef HAVE_SQLULEN
-#define SQLULEN SQLUINTEGER
-#endif
+// #ifndef HAVE_SQLULEN
+// #define SQLULEN SQLUINTEGER
+// #endif
 
 
    /* Note that currently we will allocate large buffers for long char
@@ -248,27 +250,20 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
         if (asLogical(ReadOnly))
             SQLSetConnectAttr(thisHandle->hDbc, SQL_ATTR_ACCESS_MODE,
             (SQLPOINTER)SQL_MODE_READ_ONLY, 0);
+            
         retval =
             SQLDriverConnect(thisHandle->hDbc,
-#ifdef WIN32
-                RConsole ? RConsole->handle : NULL,
-#else
                 NULL,
-#endif
-                /* This loses the const, but although the
-               declaration is not (const SQLCHAR *),
-               it should be. */
+                // This loses the const, but although the
+                // declaration is not (const SQLCHAR *), it should be.
                 (SQLCHAR *)translateChar(STRING_ELT(connection, 0)),
                 SQL_NTS,
                 (SQLCHAR *)buf1,
                 (SQLSMALLINT)buf1_len,
                 &tmp1,
-#ifdef WIN32
-                RConsole ? SQL_DRIVER_COMPLETE : SQL_DRIVER_NOPROMPT
-#else
                 SQL_DRIVER_NOPROMPT
-#endif
             );
+
         if (retval == SQL_SUCCESS || retval == SQL_SUCCESS_WITH_INFO)
         {
             SEXP constr, ptr;
@@ -284,13 +279,15 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
             thisHandle->useNRows = asInteger(useNRows);
             thisHandle->id = asInteger(id);
             thisHandle->extPtr = ptr;
-            /* return the channel no */
+            
+            // return the channel no 
             INTEGER(ans)[0] = nChannels;
-            /* and the connection string as an attribute */
+
+            // and the connection string as an attribute 
             setAttrib(ans, install("connection.string"), constr);
             setAttrib(ans, install("handle_ptr"), ptr);
-            /* Rprintf("opening %d (%p, %p)\n", nChannels,
-               ptr, thisHandle); */
+            
+            // Rprintf("opening %d (%p, %p)\n", nChannels, ptr, thisHandle);
             if (nChannels <= MAX_CHANNELS) opened_handles[nChannels] = thisHandle;
             UNPROTECT(3);
             return ans;
