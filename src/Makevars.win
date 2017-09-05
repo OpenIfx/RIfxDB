@@ -1,2 +1,6 @@
-PKG_CPPFLAGS=-I.
-PKG_LIBS=-lodbc32
+# PKG_CPPFLAGS=-I.
+# PKG_LIBS=-lodbc32
+
+PKG_CPPFLAGS = -I$(CSDK_HOME)/incl/cli
+PKG_LIBS = -L$(CSDK_HOME)/lib -liclit09b
+

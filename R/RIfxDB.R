@@ -77,12 +77,17 @@ IfxdbReConnect <- function(channel, ...)
     eval.parent(Call)
 }
 
-
+# ch <- IfxdbConnect("x")
 IfxdbConnect <- function (dsn, uid = "", pwd = "", ...)
 {
     Call <- match.call(); Call$uid <- Call$pwd <- NULL
     Call[[1]] <- quote(RIfxDB::IfxdbDriverConnect)
-    st <- paste("DSN=", dsn, sep="")
+
+    # Sat test only
+    # "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;"
+    # st <- paste("DSN=", dsn, sep="")
+    st <- paste("DRIVER={IBM INFORMIX ODBC DRIVER (64-bit)};SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;", dsn, sep="")
+
     if(nchar(uid)) st <- paste(st, ";UID=", uid, sep="")
     if(nchar(pwd)) st <- paste(st, ";PWD=", pwd, sep="")
     Call[[2]] <- st; names(Call)[2] <- ""
@@ -95,12 +100,14 @@ IfxdbDriverConnect <-
               DBMSencoding = "", rows_at_time = 100, readOnlyOptimize = FALSE)
 {
    id <- as.integer(1 + runif(1, 0, 1e5))
+
    stat <- .Call(C_RIfxDBDriverConnect, as.character(connection), id,
                  as.integer(believeNRows), as.logical(readOnlyOptimize))
    if(stat < 0L) {
        warning("Ifxdb connection failed")
        return(stat)
    }
+
    Call <- match.call()
    res <- .Call(C_RIfxDBGetInfo, attr(stat, "handle_ptr"))
    isMySQL <- res[1L] == "MySQL"

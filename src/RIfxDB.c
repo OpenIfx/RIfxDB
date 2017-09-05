@@ -214,6 +214,48 @@ SEXP RIfxDBclearresults(SEXP chan)
     return R_NilValue;
 }
 
+
+void GetDiagRec(SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag)
+{
+    SQLCHAR message[SQL_MAX_MESSAGE_LENGTH + 1];
+    SQLCHAR sqlstate[SQL_SQLSTATE_SIZE + 1];
+    SQLINTEGER sqlcode = 0;
+    SQLSMALLINT length = 0;
+
+    if (szMsgTag == NULL)
+    {
+        szMsgTag = "---";
+    }
+
+    printf("\n %s: %d : ", szMsgTag, rc);
+    if (rc >= 0)
+    {
+        printf(" OK [rc=%d] \n", rc);
+    }
+    else
+    {
+        int i = 1;
+        printf(" FAILED : %i", rc);
+        while (SQLGetDiagRec(htype,
+            hndl,
+            i,
+            sqlstate,
+            &sqlcode,
+            message,
+            SQL_MAX_MESSAGE_LENGTH + 1,
+            &length) == SQL_SUCCESS)
+        {
+            printf("\n SQLSTATE          = %s", sqlstate);
+            printf("\n Native Error Code = %ld", sqlcode);
+            printf("\n %s", message);
+            i++;
+        }
+        printf("\n-------------------------\n");
+    }
+}
+
+
+
 /**********************************************
  *	CONNECT
  *		returns channel no in stat
@@ -264,8 +306,23 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
                 SQL_DRIVER_NOPROMPT
             );
 
+            // Sat testing only
+
+            if (retval != 0)
+            {
+                printf("\n Connection Error (:- \n", retval);
+                GetDiagRec(retval, SQL_HANDLE_DBC, thisHandle->hDbc, "SQLDriverConnect");
+                //goto Exit;
+            }
+            else
+            {
+                printf("\n Connection Success! \n", retval);
+            }
+
+
         if (retval == SQL_SUCCESS || retval == SQL_SUCCESS_WITH_INFO)
         {
+
             SEXP constr, ptr;
 
             ptr = R_MakeExternalPtr(thisHandle, install("RIfxDB_channel"),
@@ -939,18 +996,23 @@ SEXP RIfxDBFetchRows(SEXP chan, SEXP max, SEXP bs, SEXP nas, SEXP believeNRows)
                 /* SQL_SUCCESS_WITH_INFO if char column(s) truncated */
                 if (retval == SQL_SUCCESS_WITH_INFO)
                 {
-                    SQLCHAR sqlstate[6], msg[SQL_MAX_MESSAGE_LENGTH];
-                    SQLINTEGER NativeError;
-                    SQLSMALLINT MsgLen;
-                    if (SQLError(hEnv, thisHandle->hDbc,
-                        thisHandle->hStmt, sqlstate, &NativeError,
-                        msg, (SQLSMALLINT)sizeof(msg), &MsgLen)
-                        == SQL_SUCCESS)
-                    {
-                        if (strcmp((char *)sqlstate, "O1004") == 0)
-                            warning(_("character data truncated in column '%s'"),
-                            (char *)thisHandle->ColData[i].ColName);
-                    }
+                    // SQLCHAR sqlstate[6], msg[SQL_MAX_MESSAGE_LENGTH];
+                    // SQLINTEGER NativeError;
+                    // SQLSMALLINT MsgLen;
+                    
+                    // //TODO: Sat
+                    // if (SQLError(hEnv, thisHandle->hDbc,
+                    //     thisHandle->hStmt, sqlstate, &NativeError,
+                    //     msg, (SQLSMALLINT)sizeof(msg), &MsgLen)
+                    //     == SQL_SUCCESS)
+                    // {
+                    //     if (strcmp((char *)sqlstate, "O1004") == 0)
+                    //         warning(_("character data truncated in column '%s'"),
+                    //         (char *)thisHandle->ColData[i].ColName);
+                    // }
+
+                    // TODO: Sat
+                    GetDiagRec( retval, SQL_HANDLE_STMT, thisHandle->hStmt, "SQLFetchScroll");                 
                 }
             }
 
@@ -1567,6 +1629,7 @@ SEXP RIfxDBEndTran(SEXP chan, SEXP sCommit)
 }
 
 
+/*
 SEXP RIfxDBListDataSources(SEXP stype)
 {
     SEXP ans, nm;
@@ -1622,6 +1685,7 @@ SEXP RIfxDBListDataSources(SEXP stype)
     UNPROTECT(2);
     return ans;
 }
+*/
 
 SEXP MyPi()
 {
@@ -1655,7 +1719,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"RIfxDBSetAutoCommit", (DL_FUNC)&RIfxDBSetAutoCommit, 2},
     {"RIfxDBEndTran", (DL_FUNC)&RIfxDBEndTran, 2},
     {"RIfxDBTypeInfo", (DL_FUNC)&RIfxDBTypeInfo, 2},
-    {"RIfxDBListDataSources", (DL_FUNC)&RIfxDBListDataSources, 1},
+    //{"RIfxDBListDataSources", (DL_FUNC)&RIfxDBListDataSources, 1},
     {"RIfxDBTerm", (DL_FUNC)&RIfxDBTerm, 0},
     {"MyPi", (DL_FUNC)&MyPi, 0},
     {NULL, NULL, 0}
