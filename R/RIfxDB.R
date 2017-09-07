@@ -77,16 +77,12 @@ IfxdbReConnect <- function(channel, ...)
     eval.parent(Call)
 }
 
-# ch <- IfxdbConnect("x")
-IfxdbConnect <- function (dsn, uid = "", pwd = "", ...)
+IfxdbConnect <- function (ConnStr, uid = "", pwd = "", ...)
 {
     Call <- match.call(); Call$uid <- Call$pwd <- NULL
     Call[[1]] <- quote(RIfxDB::IfxdbDriverConnect)
 
-    # Sat test only
-    # "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;"
-    # st <- paste("DSN=", dsn, sep="")
-    st <- paste("DRIVER={IBM INFORMIX ODBC DRIVER (64-bit)};SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;", dsn, sep="")
+    st <- paste( ConnStr, sep="")
 
     if(nchar(uid)) st <- paste(st, ";UID=", uid, sep="")
     if(nchar(pwd)) st <- paste(st, ";PWD=", pwd, sep="")

@@ -215,11 +215,12 @@ SEXP RIfxDBclearresults(SEXP chan)
 }
 
 
-void GetDiagRec(SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag)
+// TODO: may be the output can go to a trace file ?
+void GetDiagRec( SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag )
 {
-    SQLCHAR message[SQL_MAX_MESSAGE_LENGTH + 1];
-    SQLCHAR sqlstate[SQL_SQLSTATE_SIZE + 1];
-    SQLINTEGER sqlcode = 0;
+    SQLCHAR msg[SQL_MAX_MESSAGE_LENGTH + 1];
+    SQLCHAR state[SQL_SQLSTATE_SIZE + 1];
+    SQLINTEGER code = 0;
     SQLSMALLINT length = 0;
 
     if (szMsgTag == NULL)
@@ -227,30 +228,31 @@ void GetDiagRec(SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag)
         szMsgTag = "---";
     }
 
-    printf("\n %s: %d : ", szMsgTag, rc);
+    // printf("\n %s: %d : ", szMsgTag, rc);
     if (rc >= 0)
     {
-        printf(" OK [rc=%d] \n", rc);
+        // printf(" OK [rc=%d] \n", rc);
     }
     else
     {
         int i = 1;
-        printf(" FAILED : %i", rc);
+        // printf(" FAILED : %i", rc);
         while (SQLGetDiagRec(htype,
             hndl,
             i,
-            sqlstate,
-            &sqlcode,
-            message,
+            state,
+            &code,
+            msg,
             SQL_MAX_MESSAGE_LENGTH + 1,
             &length) == SQL_SUCCESS)
         {
-            printf("\n SQLSTATE          = %s", sqlstate);
-            printf("\n Native Error Code = %ld", sqlcode);
-            printf("\n %s", message);
+            // printf("\n SQLSTATE          = %s", state);
+            // printf("\n Native Error Code = %ld", code);
+            // printf("\n %s", msg);
+            warning( _("[RIfxDB] ERROR: state %s, code %d, message %s"), state, code, msg);
             i++;
         }
-        printf("\n-------------------------\n");
+        //printf("\n-------------------------\n");
     }
 }
 
@@ -265,13 +267,12 @@ void GetDiagRec(SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag)
  *	***************************************/
 static void chanFinalizer(SEXP ptr);
 
-#define buf1_len 8096
 SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
 {
     SEXP ans;
     SQLSMALLINT tmp1;
     SQLRETURN retval;
-    SQLCHAR buf1[buf1_len];
+    SQLCHAR buf1[128] = "Sat Testing Only: connection.string";
     pRIfxDBHandle thisHandle;
 
     PROTECT(ans = allocVector(INTSXP, 1));
@@ -283,41 +284,61 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
         return ans;
     }
     thisHandle = Calloc(1, RIfxDBHandle);
+    thisHandle->hDbc = NULL;
     ++nChannels;
 
     odbcInit();
     retval = SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &thisHandle->hDbc);
     if (retval == SQL_SUCCESS || retval == SQL_SUCCESS_WITH_INFO)
     {
+        char *UserConStr = translateChar(STRING_ELT(connection, 0));
+        int  UserConStrLen = strlen(UserConStr);
+
         if (asLogical(ReadOnly))
+        {
             SQLSetConnectAttr(thisHandle->hDbc, SQL_ATTR_ACCESS_MODE,
             (SQLPOINTER)SQL_MODE_READ_ONLY, 0);
+        }
             
-        retval =
-            SQLDriverConnect(thisHandle->hDbc,
-                NULL,
-                // This loses the const, but although the
-                // declaration is not (const SQLCHAR *), it should be.
-                (SQLCHAR *)translateChar(STRING_ELT(connection, 0)),
-                SQL_NTS,
-                (SQLCHAR *)buf1,
-                (SQLSMALLINT)buf1_len,
-                &tmp1,
-                SQL_DRIVER_NOPROMPT
-            );
+        {
+            unsigned char StackBuff[2048];
+            const char *DriverTag = ((sizeof(void *) == 8) ?  
+                        "DRIVER={IBM INFORMIX ODBC DRIVER (64-bit)};" :
+                        "DRIVER={IBM INFORMIX ODBC DRIVER};");
+            char* ConnectionString = (char*)StackBuff;
+            char* ConnectionStringDyna = NULL;
+                        
+            int DriverTagLen = strlen(DriverTag);
 
-            // Sat testing only
+            if (sizeof(StackBuff) < (UserConStrLen + DriverTagLen +1))
+            {
+                //Usage of stack memory to minimize fragmentation in case of frequent connections.
+                ConnectionStringDyna = (char*)malloc((UserConStrLen + DriverTagLen+1));
+                ConnectionString = ConnectionStringDyna;
+            }
 
-            if (retval != 0)
+            // Memory size has already calculated in bytes.
+            memset((void*)ConnectionString, 0, (UserConStrLen + DriverTagLen));
+            memcpy((void*)ConnectionString, DriverTag, (DriverTagLen));
+            memcpy((void*)((unsigned char *)ConnectionString + DriverTagLen), (void *)(UserConStr), UserConStrLen);
+                
+            retval = SQLDriverConnect( thisHandle->hDbc,  NULL,  ConnectionString, 
+                    SQL_NTS, NULL, 0, NULL,  SQL_DRIVER_NOPROMPT );
+
+            if ( ConnectionStringDyna )
             {
-                printf("\n Connection Error (:- \n", retval);
-                GetDiagRec(retval, SQL_HANDLE_DBC, thisHandle->hDbc, "SQLDriverConnect");
-                //goto Exit;
+                free(ConnectionStringDyna);
             }
-            else
-            {
-                printf("\n Connection Success! \n", retval);
-            }
+         }
+
+            // if (retval != 0)
+            // {
+            //     GetDiagRec(retval, SQL_HANDLE_DBC, thisHandle->hDbc, "SQLDriverConnect");
+            // }
+            // else
+            // {
+            //     // printf("\n Connection Success! \n", retval);
+            // }
 
 
         if (retval == SQL_SUCCESS || retval == SQL_SUCCESS_WITH_INFO)
@@ -1689,8 +1710,12 @@ SEXP RIfxDBListDataSources(SEXP stype)
 
 SEXP MyPi()
 {
-	SEXP result = PROTECT(allocVector(REALSXP, 1));
-	REAL(result)[0] = 3.14159265359;
+    SEXP result = PROTECT(allocVector(REALSXP, 1));
+    int x = sizeof( void *);
+
+    REAL(result)[0] = 3.14159265359;
+    REAL(result)[0] = x;
+    
 	UNPROTECT(1);
   
 	return result;
