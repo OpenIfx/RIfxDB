@@ -8,6 +8,7 @@ Informix native R driver
 
 ### Hikers are welcome beyond this point
 ----------------------------------------
+Experimental ....
 
 #### Database setup
 ```sql
@@ -25,11 +26,9 @@ insert into t1 values( 7, 'Saturday', 107, 207 );
 ####  Build the driver on windows, and then ....
 ```R
 > library(RIfxDB)
-> 
-> 
-> ch <- IfxdbConnect( "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxxx;" )
-> tmp <- IfxdbQuery(ch, "select * from t1") 
-> res <- IfxdbFetchRows(ch)
+> ch <- IfxConnect( "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;" )
+> tmp <- IfxQuery(ch, "select * from t1") 
+> res <- IfxFetchRows(ch)
 > print (res)
 $data
 $data[[1]]
@@ -49,7 +48,9 @@ $data[[4]]
 $stat
 [1] 1
 
-> IfxdbClose(ch)
+> IfxClose(ch)
 > 
 ```
+
+
 
