@@ -1,10 +1,13 @@
 # RIfxDB
 Informix native R driver
   
-### Project Status : On the drawing board
+## Project Status : **On the drawing board**
+.
+
 
 
 ### Hikers are welcome beyond this point
+----------------------------------------
 
 #### Database setup
 ```sql
