@@ -82,7 +82,8 @@ IfxdbConnect <- function (ConnStr, uid = "", pwd = "", ...)
     Call <- match.call(); Call$uid <- Call$pwd <- NULL
     Call[[1]] <- quote(RIfxDB::IfxdbDriverConnect)
 
-    st <- paste( ConnStr, sep="")
+    # st <- paste( ConnStr, sep="")
+    st <- ConnStr
 
     if(nchar(uid)) st <- paste(st, ";UID=", uid, sep="")
     if(nchar(pwd)) st <- paste(st, ";PWD=", pwd, sep="")
