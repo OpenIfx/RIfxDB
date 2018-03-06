@@ -1,4 +1,4 @@
-# RIfxDB
+# IfxR
 Informix native R driver
   
 ## Project Status : **On the drawing board**
@@ -25,7 +25,7 @@ insert into t1 values( 7, 'Saturday', 107, 207 );
 
 ####  Build the driver on windows, and then ....
 ```R
-> library(RIfxDB)
+> library(IfxR)
 > ch <- IfxConnect( "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;" )
 > tmp <- IfxQuery(ch, "select * from t1") 
 > res <- IfxFetchRows(ch)

@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlTypeInfo.Rd
+% file IfxR/man/sqlTypeInfo.Rd
 % copyright (C) 2004-2013  B. D. Ripley
 %
 \name{setSqlTypeInfo}

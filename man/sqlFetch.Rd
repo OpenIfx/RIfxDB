@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlFetch.Rd
+% file IfxR/man/sqlFetch.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %

@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlColumns.Rd
+% file IfxR/man/sqlColumns.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %

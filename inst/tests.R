@@ -1,6 +1,6 @@
 # These tests are only for BDR's Windows & Linux systems
 
-library(RIfxDB)
+library(IfxR)
 library(MASS)
 USArrests[1,2] <- NA
 hills <- hills[1:15,]
@@ -393,7 +393,7 @@ sqlSave(channel, hills, "hills test", verbose=TRUE, fast=FALSE)
 sqlUpdate(channel, hills[11:15,], "hills test", verbose=TRUE, fast=FALSE)
 sqlDrop(channel, "hills test")
 
-A <- data.frame(a="«Latin-1 accented chars»: éè øØ å<Å æ<Æ")
+A <- data.frame(a="ï¿½Latin-1 accented charsï¿½: ï¿½ï¿½ ï¿½ï¿½ ï¿½<ï¿½ ï¿½<ï¿½")
 sqlDrop(channel, "A", errors = FALSE)
 sqlSave(channel, A, verbose=TRUE)
 sqlFetch(channel, "A")

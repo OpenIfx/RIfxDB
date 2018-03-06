@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlTypeInfo.Rd
+% file IfxR/man/sqlTypeInfo.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %

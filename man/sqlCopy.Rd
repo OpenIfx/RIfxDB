@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlCopy.Rd
+% file IfxR/man/sqlCopy.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %

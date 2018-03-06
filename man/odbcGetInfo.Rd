@@ -1,4 +1,4 @@
-% file RIfxDB/man/odbcGetInfo.Rd
+% file IfxR/man/odbcGetInfo.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %
@@ -13,7 +13,7 @@ odbcGetInfo(channel)
 }
 \arguments{
   \item{channel}{connection handle as returned by
-    \code{\link{odbcConnect}} of class \code{"RIfxDB"}.}
+    \code{\link{odbcConnect}} of class \code{"IfxR"}.}
 }
 \value{
   A named character string giving information on the database and ODBC driver

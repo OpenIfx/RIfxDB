@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlQuery.Rd
+% file IfxR/man/sqlQuery.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %
@@ -47,7 +47,7 @@ sqlGetResults(channel, as.is = FALSE,  errors = FALSE,
     converted to factors?}
 }
 \details{
-  \code{sqlQuery} is the workhorse function of \pkg{RIfxDB}.  It sends the SQL
+  \code{sqlQuery} is the workhorse function of \pkg{IfxR}.  It sends the SQL
   statement \code{query} to the server, using connection \code{channel}
   returned by \code{\link{odbcConnect}}, and retrieves (some or all of)
   the results \emph{via} \code{sqlGetResults}.
@@ -87,7 +87,7 @@ sqlGetResults(channel, as.is = FALSE,  errors = FALSE,
   \code{\link{type.convert}}.  When character data are to be converted
   to numeric data, the setting of \code{options("dec")} is used to map
   the character used by the ODBC driver in setting decimal points---this
-  is set to a locale-specific value when \pkg{RIfxDB} is initialized if
+  is set to a locale-specific value when \pkg{IfxR} is initialized if
   it is not already set.
   
   Using \code{buffsize} will yield a marginal increase in speed if set

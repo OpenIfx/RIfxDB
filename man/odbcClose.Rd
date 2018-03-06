@@ -1,11 +1,11 @@
-% file RIfxDB/man/odbcClose.Rd
+% file IfxR/man/odbcClose.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %
 \name{odbcClose}
 \alias{odbcClose}
 \alias{odbcCloseAll}
-\alias{close.RIfxDB}
+\alias{close.IfxR}
 \title{ODBC Close Connections}
 \description{
   Close connections to ODBC databases.
@@ -13,12 +13,12 @@
 \usage{
 odbcClose(channel)
 
-\method{close}{RIfxDB}(con, \dots)
+\method{close}{IfxR}(con, \dots)
 
 odbcCloseAll()
 }
 \arguments{
-  \item{channel, con}{RIfxDB connection object as returned by
+  \item{channel, con}{IfxR connection object as returned by
     \code{odbcConnect}.}
   \item{\dots}{additional arguments passed from the generic.}
 }

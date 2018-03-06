@@ -1,4 +1,4 @@
-# file RIfxDB/R/RIfxDB.R
+# file IfxR/R/IfxR.R
 # copyright 2017  Sathyanesh Krishnan
 # copyright 2017  Javier Sagrera
 #
@@ -27,38 +27,38 @@
 
      if(is.null(getOption("dec")))
           options(dec = Sys.localeconv()["decimal_point"])
-    #library.dynam("RIfxDB", package, lib )
+    #library.dynam("IfxR", package, lib )
         
 }
 
 .onUnload <- function(libpath)
 {
     IfxCloseAll()
-    .Call(C_RIfxDBTerm)
-    library.dynam.unload("RIfxDB", libpath)
+    .Call(C_IfxRTerm)
+    library.dynam.unload("IfxR", libpath)
 }
 
 IfxGetErrMsg <- function(channel)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    err <- .Call(C_RIfxDBGetErrMsg, attr(channel, "handle_ptr"))
-    .Call(C_RIfxDBClearError, attr(channel, "handle_ptr"))
+       stop("first argument is not an open IfxR channel")
+    err <- .Call(C_IfxRGetErrMsg, attr(channel, "handle_ptr"))
+    .Call(C_IfxRClearError, attr(channel, "handle_ptr"))
     return(err)
 }
 
 IfxClearError <- function(channel)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBClearError, attr(channel, "handle_ptr"))
+       stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRClearError, attr(channel, "handle_ptr"))
     invisible()
 }
 
 IfxReConnect <- function(channel, ...)
 {
-    if(!inherits(channel, "RIfxDB"))
-        stop("Argument 'channel' must inherit from class RIfxDB")
+    if(!inherits(channel, "IfxR"))
+        stop("Argument 'channel' must inherit from class IfxR")
     Call <- attr(channel, "call")
     dots <- list(...)
     if("uid" %in% names(dots)) {
@@ -80,7 +80,7 @@ IfxReConnect <- function(channel, ...)
 IfxConnect <- function (ConnStr, uid = "", pwd = "", ...)
 {
     Call <- match.call(); Call$uid <- Call$pwd <- NULL
-    Call[[1]] <- quote(RIfxDB::IfxDriverConnect)
+    Call[[1]] <- quote(IfxR::IfxDriverConnect)
 
     # st <- paste( ConnStr, sep="")
     st <- ConnStr
@@ -98,15 +98,15 @@ IfxDriverConnect <-
 {
    id <- as.integer(1 + runif(1, 0, 1e5))
 
-   stat <- .Call(C_RIfxDBDriverConnect, as.character(connection), id,
+   stat <- .Call(C_IfxRDriverConnect, as.character(connection), id,
                  as.integer(believeNRows), as.logical(readOnlyOptimize))
    if(stat < 0L) {
-       warning("RIfxDB connection failed")
+       warning("IfxR connection failed")
        return(stat)
    }
 
    Call <- match.call()
-   res <- .Call(C_RIfxDBGetInfo, attr(stat, "handle_ptr"))
+   res <- .Call(C_IfxRGetInfo, attr(stat, "handle_ptr"))
    isMySQL <- res[1L] == "MySQL"
    if(missing(colQuote)) colQuote <- ifelse(isMySQL, "`", '"')
    if(missing(case))
@@ -130,7 +130,7 @@ IfxDriverConnect <-
        attr(stat, "connection.string") <- sub("PWD=[^;]+($|;)", "PWD=******;", cs)
        Call$connection <- sub("PWD=[^;]+($|;)", "PWD=******;", connection)
    }
-   structure(stat, class = "RIfxDB", case = case, id = id,
+   structure(stat, class = "IfxR", case = case, id = id,
              believeNRows = believeNRows,
              colQuote = colQuote, tabQuote = tabQuote,
              interpretDot = interpretDot,
@@ -143,9 +143,9 @@ IfxQuery <-
     function(channel, query, rows_at_time = attr(channel, "rows_at_time"))
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
+       stop("first argument is not an open IfxR channel")
     if(nchar(enc <- attr(channel, "encoding"))) query <- iconv(query, to=enc)
-    .Call(C_RIfxDBQuery, attr(channel, "handle_ptr"), as.character(query),
+    .Call(C_IfxRQuery, attr(channel, "handle_ptr"), as.character(query),
           as.integer(rows_at_time))
 }
 
@@ -154,7 +154,7 @@ IfxUpdate <-
              nastring = NULL)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
+       stop("first argument is not an open IfxR channel")
     ## sanity checks!
     if(length(params) == 0L || nrow(params) == 0L)
         stop("no parameters, so nothing to update")
@@ -177,7 +177,7 @@ IfxUpdate <-
     ds <- match(params[[1]], cnames)
     if(any(is.na(ds))) stop("missing columns in 'data'")
     ## but pass 0-indexed version of ds
-    .Call(C_RIfxDBUpdate, attr(channel, "handle_ptr"), as.character(query),
+    .Call(C_IfxRUpdate, attr(channel, "handle_ptr"), as.character(query),
           data, ds-1L, params, as.integer(vflag))
 }
 
@@ -192,10 +192,10 @@ IfxTables <- function(channel, catalog = NULL, schema = NULL,
                         tableName = NULL, tableType = NULL, literal = FALSE)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
+       stop("first argument is not an open IfxR channel")
     tableType  <- if(is.character(tableType) && length(tableType))
         paste(tableType, collapse=",") else NULL
-    .Call(C_RIfxDBTables, attr(channel, "handle_ptr"),
+    .Call(C_IfxRTables, attr(channel, "handle_ptr"),
           catalog, schema, tableName, tableType, as.logical(literal))
 }
 
@@ -203,34 +203,34 @@ IfxColumns <- function(channel, table, catalog = NULL, schema = NULL,
                         literal = FALSE)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBColumns, attr(channel, "handle_ptr"),
+       stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRColumns, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema, as.logical(literal))
 }
 
 IfxSpecialColumns <- function(channel, table, catalog = NULL, schema = NULL)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBSpecialColumns, attr(channel, "handle_ptr"),
+       stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRSpecialColumns, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema)
 }
 
 IfxPrimaryKeys <- function(channel, table, catalog = NULL, schema = NULL)
 {
     if(!IfxValidChannel(channel))
-        stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBPrimaryKeys, attr(channel, "handle_ptr"),
+        stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRPrimaryKeys, attr(channel, "handle_ptr"),
           as.character(table), catalog, schema)
 }
 
-close.RIfxDB <- function(con, ...) invisible(ifelse(IfxClose(con), 0L, 1L))
+close.IfxR <- function(con, ...) invisible(ifelse(IfxClose(con), 0L, 1L))
 
 IfxClose <- function(channel)
 {
     if(!IfxValidChannel(channel))
-       stop("argument is not an open RIfxDB channel")
-    res <- .Call(C_RIfxDBClose, attr(channel, "handle_ptr"))
+       stop("argument is not an open IfxR channel")
+    res <- .Call(C_IfxRClose, attr(channel, "handle_ptr"))
     if(res > 0) invisible(FALSE) else {
         warning(paste(IfxGetErrMsg(channel), sep="\n"))
         FALSE
@@ -240,7 +240,7 @@ IfxClose <- function(channel)
 
 IfxCloseAll <- function()
 {
-    .Call(C_RIfxDBCloseAll)
+    .Call(C_IfxRCloseAll)
     invisible()
 }
 
@@ -249,23 +249,23 @@ IfxFetchRows <-
              nullstring = NA_character_, believeNRows = TRUE)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBFetchRows, attr(channel, "handle_ptr"), max, buffsize,
+       stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRFetchRows, attr(channel, "handle_ptr"), max, buffsize,
           as.character(nullstring), believeNRows)
 }
 
 IfxCaseFlag <- function (channel)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
+       stop("first argument is not an open IfxR channel")
     attr(channel, "case")
 }
 
 IfxGetInfo <- function(channel)
 {
     if(!IfxValidChannel(channel))
-       stop("argument is not an open RIfxDB channel")
-    res <- .Call(C_RIfxDBGetInfo, attr(channel, "handle_ptr"))
+       stop("argument is not an open IfxR channel")
+    res <- .Call(C_IfxRGetInfo, attr(channel, "handle_ptr"))
     names(res) <- c("DBMS_Name", "DBMS_Ver", "Driver_ODBC_Ver",
                     "Data_Source_Name", "Driver_Name", "Driver_Ver",
                     "ODBC_Ver", "Server_Name")
@@ -274,23 +274,23 @@ IfxGetInfo <- function(channel)
 
 IfxValidChannel <- function(channel)
 {
-    inherits(channel, "RIfxDB") && is.integer(channel) &&
-    .Call(C_RIfxDBcheckchannel, channel, attr(channel, "id")) > 0
+    inherits(channel, "IfxR") && is.integer(channel) &&
+    .Call(C_IfxRcheckchannel, channel, attr(channel, "id")) > 0
 }
 
 IfxClearResults <-  function(channel)
 {
     if(!IfxValidChannel(channel))
-       stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBclearresults, attr(channel, "handle_ptr"))
+       stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRclearresults, attr(channel, "handle_ptr"))
     invisible()
 }
 
-print.RIfxDB <- function(x, ...)
+print.IfxR <- function(x, ...)
 {
     con <- strsplit(attr(x, "connection.string"), ";", fixed = TRUE)[[1L]]
     case <- paste("case=", attr(x, "case"), sep="")
-    cat("RIfxDB Connection ", as.vector(x), "\nDetails:\n  ", sep = "")
+    cat("IfxR Connection ", as.vector(x), "\nDetails:\n  ", sep = "")
     cat(case, con, sep="\n  ")
     invisible(x)
 }
@@ -298,22 +298,22 @@ print.RIfxDB <- function(x, ...)
 IfxSetAutoCommit <- function(channel, autoCommit = TRUE)
 {
     if(!IfxValidChannel(channel))
-         stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBSetAutoCommit, attr(channel, "handle_ptr"), autoCommit)
+         stop("first argument is not an open IfxR channel")
+    .Call(C_IfxRSetAutoCommit, attr(channel, "handle_ptr"), autoCommit)
 }
 
 IfxEndTran <- function(channel, commit = TRUE)
 {
     if(!IfxValidChannel(channel))
-         stop("first argument is not an open RIfxDB channel")
-    .Call(C_RIfxDBEndTran, attr(channel, "handle_ptr"), commit)
+         stop("first argument is not an open IfxR channel")
+    .Call(C_IfxREndTran, attr(channel, "handle_ptr"), commit)
 }
 
 IfxDataSources <- function(type = c("all", "user", "system"))
 {
     type <- match.arg(type)
     type <- match(type, c("all", "user", "system"))
-    .Call(C_RIfxDBListDataSources, type)
+    .Call(C_IfxRListDataSources, type)
 }
 
 MyPi <- function() 

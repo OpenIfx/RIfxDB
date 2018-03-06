@@ -1,4 +1,4 @@
-% file RIfxDB/man/odbc.Rd
+% file IfxR/man/odbc.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %
@@ -26,7 +26,7 @@ odbcClearError(channel)
 }
 \arguments{
   \item{channel}{connection handle as returned by
-    \code{\link{odbcConnect}}, of class \code{"RIfxDB"}.}
+    \code{\link{odbcConnect}}, of class \code{"IfxR"}.}
   \item{catalog, schema, tableName, tableType}{\code{NULL} or character:
     whether these do anything depends on the ODBC driver.  The first
     three can be length-one character vectors, and \code{tableType} can
@@ -48,7 +48,7 @@ odbcClearError(channel)
   These are low-level functions called by \code{\link{sqlTables}},
   \code{\link{sqlQuery}}, \code{\link{sqlGetResults}} and similar
   high-level functions.  They are likely to be confind to the 
-  \pkg{RIfxDB} namespace in the near future.
+  \pkg{IfxR} namespace in the near future.
   
   \code{odbcTables} enquires about the tables on the connected database.
   Whether arguments after the first do anything and what they do

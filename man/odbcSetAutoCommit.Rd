@@ -1,4 +1,4 @@
-% file RIfxDB/man/odbcSetAutoCommit.Rd
+% file IfxR/man/odbcSetAutoCommit.Rd
 % copyright (C) 2005-2013  B. D. Ripley
 %
 \name{odbcSetAutoCommit}
@@ -14,7 +14,7 @@ odbcSetAutoCommit(channel, autoCommit = TRUE)
 odbcEndTran(channel, commit = TRUE)
 }
 \arguments{
-  \item{channel}{RIfxDB connection object returned by \code{odbcConnect}.}
+  \item{channel}{IfxR connection object returned by \code{odbcConnect}.}
   \item{autoCommit}{logical.  Set auto-commit on?}
   \item{commit}{logical.  Commit or rollback pending transaction?}
 }

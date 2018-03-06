@@ -1,4 +1,4 @@
-% file RIfxDB/man/odbcDataSources.Rd
+% file IfxR/man/odbcDataSources.Rd
 % copyright (C) 2006-2013  B. D. Ripley
 %
 \name{odbcDataSources}

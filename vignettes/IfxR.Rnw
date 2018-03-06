@@ -38,10 +38,10 @@ pdfauthor={B. D. Ripley}%
 \begin{document}
 
 %\VignetteIndexEntry{ODBC Connectivity}
-%\VignetteDepends{RIfxDB}
+%\VignetteDepends{IfxR}
 %\VignetteKeywords{databases}
 %\VignetteKeywords{ODBC}
-%\VignettePackage{RIfxDB}
+%\VignettePackage{IfxR}
 
 %\SweaveOpts{engine=R,eps=FALSE}
 
@@ -54,11 +54,11 @@ pdfauthor={B. D. Ripley}%
 \sloppy
 
 \noindent
-Package \pkg{RIfxDB} implements ODBC database connectivity.  It was
+Package \pkg{IfxR} implements ODBC database connectivity.  It was
 originally written by Michael Lapsley (St George's Medical School,
 University of London) in the early days of R (1999), but after he
 disappeared in 2002, it was rescued and since much extended by Brian
-Ripley.  Version 1.0-1 was released in January 2003, and \pkg{RIfxDB}
+Ripley.  Version 1.0-1 was released in January 2003, and \pkg{IfxR}
 is nowadays a mature and much-used platform for interfacing R to
 database systems.
 
@@ -67,7 +67,7 @@ here.  See also the archives of the \code{R-sig-db} mailing list.
 
 \section{Basic Usage}
 
-Two groups of functions are provided in \pkg{RIfxDB}.  The mainly
+Two groups of functions are provided in \pkg{IfxR}.  The mainly
 internal \code{odbc*} commands implement low-level access to C-level
 ODBC functions with similar\footnote{in most cases with prefix
   \code{SQL} replacing \code{odbc}.} names.  The \code{sql*} functions
@@ -78,16 +78,16 @@ are commonly used make or break a connection.
 \subsection{Making a connection}
 
 ODBC works by setting up a \emph{connection} or \emph{channel} from
-the client (here \pkg{RIfxDB}) to the DBMSs as specified in the DSN.
+the client (here \pkg{IfxR}) to the DBMSs as specified in the DSN.
 Such connections are normally used throughout a session, but should be
-closed explicitly at the end of the session---however \pkg{RIfxDB} will
+closed explicitly at the end of the session---however \pkg{IfxR} will
 clear up after you if you forget (with a warning that might not be
 seen in a GUI environment).  There can be many simultaneous
 connections.
 
 The simplest way to make a connection is
 \begin{example}
-library(RIfxDB)
+library(IfxR)
 ch <- IfxdbConnect("\var{some\_dsn}")
 \end{example}
 and when you are done with it,
@@ -98,7 +98,7 @@ IfxdbClose(ch)
 \end{example}
 The connection object \code{ch} is how you specify one of potentially
 many open connections, and is the first argument to all other
-\pkg{RIfxDB} functions.  If you forget the details, printing it will
+\pkg{IfxR} functions.  If you forget the details, printing it will
 give some summary information.
 
 If the DBMS user and password are needed and not stored in the DSN,
@@ -128,7 +128,7 @@ the driver (and Appendix~A) for more details.
 where `database' can be interpreted very widely, including for example
 Excel spreadsheets and directories of flat files.
 
-The simplest and most common use of \pkg{RIfxDB} is to extract data
+The simplest and most common use of \pkg{IfxR} is to extract data
 from databases held on central database servers.  Such access is
 read-only, and this can be enforced by settings in the DSN or
 \emph{via} permission settings (also known as \emph{privileges}) on
@@ -213,7 +213,7 @@ perform common tasks in several commonly used DBMSs are available at
 \url{http://sqlzoo.net/}.
 
 % <<>>=
-% library(RIfxDB)
+% library(IfxR)
 % channel <- IfxdbConnect("test")
 % sqlSave(channel, USArrests, rownames = "State", verbose = TRUE)
 % sqlQuery(channel, paste("select State, Murder from USArrests",
@@ -226,7 +226,7 @@ perform common tasks in several commonly used DBMSs are available at
 \subsection{Table Names}
 
 SQL-92 expects both table and column names to be alphanumeric plus
-underscore, and \pkg{RIfxDB} does not in general support vendor
+underscore, and \pkg{IfxR} does not in general support vendor
 extensions (for example Access allows spaces).  There are some
 system-specific quoting schemes: Access and Excel allow table names to
 be enclosed in \code{[ ]} in SQL queries, MySQL (by default) quotes
@@ -237,7 +237,7 @@ of double quotes.
 %circumstances.
 
 The \code{IfxdbConnnect} function allows the specification of the
-quoting rules for names \pkg{RIfxDB} itself sends, but sensible
+quoting rules for names \pkg{IfxR} itself sends, but sensible
 defaults\footnote{backticks for MySQL, \code{[ ]} for the Access and
   Excel convenience wrappers, otherwise ANSI double quotes.} are
 selected.  Users do need to be aware of the quoting issue when
@@ -321,7 +321,7 @@ reasonable-length\footnote{which of course depends on the DBMS.
 other types of columns in mapping to the DBMS-specific types of
 column.  For some drivers it can do a good job with date and date-time
 columns; in others it needs some hints (and e.g.{} for Oracle dates
-are stored as date-times).  The files in the \code{RIfxDB/tests}
+are stored as date-times).  The files in the \code{IfxR/tests}
 directory in the sources and the installed file \code{tests.R} provide
 some examples.  One of the options is the \code{fast} argument: the
 default is \code{fast = TRUE} which transfers data in binary format: the
@@ -330,7 +330,7 @@ strings a row at a time---this is slower but can work better with some
 drivers (and worse with others).
 
 The other main tool for writing is \code{sqlUpdate} which is used to
-change rows in an existing table.  Note that \pkg{RIfxDB} only does
+change rows in an existing table.  Note that \pkg{IfxR} only does
 this in a simple fashion, and on up-market DBMSs it may be better to
 set cursors and use direct SQL queries, or at least to control
 transactions by calls to \code{IfxdbSetAutoCommit} and
@@ -363,7 +363,7 @@ name in table \code{customers}.  Support of foreign keys is patchy:
 some DBMSs (e.g,{} MySQL prior to 6.0) accept specifications but
 ignore them.
 
-\pkg{RIfxDB} allows primary keys to be set as part of the
+\pkg{IfxR} allows primary keys to be set as part of the
 \code{sqlSave()} function when it creates a table: otherwise they can
 be set by \code{sqlQuery()} in DBMS-specific ways (usually by
 \code{ALTER TABLE}).
@@ -468,17 +468,17 @@ Commonly used data types fall into a number of groups:
   few thousand---often other types will be available for longer
   character strings.  There is a sanity check which will allow only
   strings of up to 65535 bytes when reading: this can be removed by
-  recompiling \pkg{RIfxDB}.
+  recompiling \pkg{IfxR}.
 
   Many other DBMSs have separate types to hold Unicode character
   strings, often with names like \code{nvarchar} or \code{wvarchar}.
-  Note that currently \pkg{RIfxDB} only uses the current locale for
+  Note that currently \pkg{IfxR} only uses the current locale for
   character data, which could be UTF-8 (and will be on macOS and in
   many cases on Linux and other Unix-alikes), but is never UCS-2 as
   used on Windows.  So if character data is stored in the database in
   Unicode, it will be translated (with a possible loss of information)
   in non-Unicode locales.  (This may change in future versions of
-  \pkg{RIfxDB}.)
+  \pkg{IfxR}.)
 
   Some DBMSs such as PostgreSQL and Microsoft SQL Server allow
   variable-length character strings of length only limited by
@@ -545,10 +545,10 @@ Commonly used data types fall into a number of groups:
   UTC and some do not, and so on.  Usually there are also types for
   time intervals.
 
-  All such types are transferred as character strings in \pkg{RIfxDB}.
+  All such types are transferred as character strings in \pkg{IfxR}.
 
 \item[Binary types]
-  These are less common, and unsupported by \pkg{RIfxDB} prior to
+  These are less common, and unsupported by \pkg{IfxR} prior to
   version 1.3-0.  They parallel character types in that they are a
   sequence of bytes of fixed or variable length, sometimes with
   additional types for long sequences: there are separate ODBC types
@@ -598,7 +598,7 @@ ODBC defines two sets of data types: \emph{SQL data types} and \emph{C
   data types}. SQL data types indicate the data types of data stored
 at the data source using standard names. C data types indicate the
 data types used in the compiled code in the application (here
-\pkg{RIfxDB}) when transferring data and are the same for all drivers.
+\pkg{IfxR}) when transferring data and are the same for all drivers.
 
 The ODBC SQL data types are abstractions of the data types discussed
 above with names like \code{SQL\_INTEGER}.  They include
@@ -631,7 +631,7 @@ SQL\_TYPE\_TIMESTAMP&93
   are 16-byte numbers, Microsoft's implementation of UUIDs.)}
 \end{table}
 
-The only ODBC C data types currently used by \pkg{RIfxDB} are
+The only ODBC C data types currently used by \pkg{IfxR} are
 \code{SQL\_C\_DOUBLE}, \code{SQL\_C\_SLONG} (32-bit signed integers)
 and \code{SQL\_C\_CHAR} for reading and writing, and
 \code{SQL\_C\_FLOAT} (single-precision), \code{SQL\_C\_SSHORT} (16-bit
@@ -684,7 +684,7 @@ It is often possible to use \code{sqlTables} to list the available
 catalogs or schemas: see its help page for the driver-specific
 details.
 
-\pkg{RIfxDB} usually works with tables in the current schema, but unless
+\pkg{IfxR} usually works with tables in the current schema, but unless
 the connection was opened with \code{interpretDot = FALSE} most
 functions will attempt to interpret the `dotted name' notation.
 The interpretation depends on the DBMS: the SQL-92 meaning is
@@ -695,7 +695,7 @@ try\footnote{currerntly this is stymied by bugs in the ODBC driver,
   so \code{SQLColumns} is unable to report on tables in specified
   databases.}  that interpretation if they recognize a MySQL driver.
 Some DBMSs allow more than two components, but these are not currently
-supported by the \pkg{RIfxDB} functions.
+supported by the \pkg{IfxR} functions.
 
 Functions \code{sqlTables}, \code{sqlColumns} and
 \code{sqlPrimaryKeys} have arguments \code{catalog} and \code{schema}
@@ -724,7 +724,7 @@ database can be selected by a \code{USE \var{database}} query.
 \section{Internationalization Issues}
 
 Internationalization issues are made more complex by ODBC being a
-client-server system, and the ODBC client (\pkg{RIfxDB}) and the server
+client-server system, and the ODBC client (\pkg{IfxR}) and the server
 may be running on different machines with different OSes on different
 continents. So the client may need some help.
 
@@ -733,7 +733,7 @@ form, so the representation of the decimal point is not an issue.  But
 in some cases it could be (e.g.{} decimal rather than binary SQL data
 types will be transferred as character strings) and then the decimal
 point to be used will be taken from \code{options("dec")}: if unset
-this is set when \pkg{RIfxDB} is loaded from the setting of the current
+this is set when \pkg{IfxR} is loaded from the setting of the current
 locale on the machine running R (\emph{via} \code{Sys.localeconv}).
 Some ODBC drivers (e.g.{} for Microsoft SQL Server, Oracle) allow the
 locale (`NLS') to be used for numeric values to be selected for the
@@ -759,7 +759,7 @@ recoding when sending data to or from the ODBC driver and thence the DBMS.
 \appendix
 \section{Installation}
 
-\pkg{RIfxDB} is simple to install, and binary distributions are
+\pkg{IfxR} is simple to install, and binary distributions are
 available for Windows from CRAN.
 
 To install from the sources, an \emph{ODBC Driver Manager} is
@@ -781,7 +781,7 @@ manager in use.  At least for macOS 10.9--12, all that is required for
 \code{iODBC} is to unpack the sources and use their headers by
 something like
 \begin{example}
-ODBC_INCLUDE=/path/to/libiodbc-srcs/include' R CMD INSTALL RIfxDB
+ODBC_INCLUDE=/path/to/libiodbc-srcs/include' R CMD INSTALL IfxR
 \end{example}
 \noindent
 and the \code{iODBC} sources used by Apple can be found at
@@ -806,7 +806,7 @@ additional \code{CFLAGS}.
 The appendix is in part an \emph{aide memoire} for the maintainer, but
 may interest the curious user.
 
-RIfxDB connection objects are an integer with several attributes: they
+IfxR connection objects are an integer with several attributes: they
 are numbered consecutively in the current session.  For example
 \begin{smallexample}
 > channel <- IfxdbConnect("test")
@@ -855,7 +855,7 @@ the first 1000 connections of an R session, to enable
 
 The \code{struct} is currently defined as
 \begin{smallexample}
-typedef struct rifxdbHandle \{
+typedef struct IfxRHandle \{
     SQLHDBC     hDbc;         /* connection handle */
     SQLHSTMT    hStmt;        /* statement handle */
     SQLLEN      nRows;        /* number of rows and columns in result set */
@@ -873,7 +873,7 @@ typedef struct rifxdbHandle \{
 
     SQLMSG      *msglist;     /* root of linked list of messages */
     SEXP        extPtr;       /* the external pointer address */
-\} RIfxDBHandle, *pRIfxDBHandle;
+\} IfxRHandle, *pIfxRHandle;
 \end{smallexample}
 Most ODBC operations work by sending a query, explicitly or implicitly
 via e.g.{} \code{sqlColumns}, and this creates a \emph{result set}
@@ -882,7 +882,7 @@ which is transferred to an R data frame by \code{sqlGetResults}.
 set, with \code{nCols = -1} used if there are no pending results.
 
 ODBC works with various \emph{handles}.  There is a \code{SQLHENV}
-handle for the environment that \code{RIfxDB} opens when a connection
+handle for the environment that \code{IfxR} opens when a connection
 is first opened or DSNs are listed---its main use is to request ODBC~3
 semantics.  Then each connection has a \code{SQLHDBC} handle, and each
 query (statement) a \code{SQLHSTMT} handle.  Argument
@@ -900,7 +900,7 @@ result set to them by \code{SQLBindCol}.  Then when
 \code{MAX\_ROWS\_FETCH = 1024}) rows are loaded into the buffers and
 then copied into R vectors.
 
-Prior to \pkg{RIfxDB} 1.3-0 the default was to fetch a row at a time,
+Prior to \pkg{IfxR} 1.3-0 the default was to fetch a row at a time,
 but it is now to fetch up to 100 rows at a time.  Entries
 \code{rowsArraySize} and \code{rowsFetched} are used to indicate how
 many rows were requested and how many were available.  Since e.g.{}

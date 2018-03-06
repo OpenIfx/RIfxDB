@@ -1,4 +1,4 @@
-% file RIfxDB/man/odbcConnect.Rd
+% file IfxR/man/odbcConnect.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %
@@ -43,7 +43,7 @@ odbcConnectExcel2007(xls.file, readOnly = TRUE, ...)
   \item{...}{further arguments to be passed to \code{odbcDriverConnect}.}
   \item{case}{Controls case changes for different DBMS engines.  See
     \sQuote{Details}.}
-  \item{channel}{RIfxDB connection object returned by \code{odbcConnect}.}
+  \item{channel}{IfxR connection object returned by \code{odbcConnect}.}
   \item{believeNRows}{logical.  Is the number of rows returned by the
     ODBC connection believable?  Not true for some Oracle and Sybase drivers,
     apparently, nor for Actual Technologies' SQLite driver for Mac OS X.}
@@ -108,7 +108,7 @@ odbcConnectExcel2007(xls.file, readOnly = TRUE, ...)
 #ifdef windows
   (The DBase driver is unusual: it preserves names on reading, but
   converts both table and column names to upper case on writing, and
-  truncates table names to 8 characters.  RIfxDB does not attempt to do
+  truncates table names to 8 characters.  IfxR does not attempt to do
   any mapping for that driver.)
 #endif
   
@@ -125,7 +125,7 @@ odbcConnectExcel2007(xls.file, readOnly = TRUE, ...)
   Note that if a password is supplied (either as a \code{pwd} argument
   or as part of the DSN) it may be stored in the
   \code{connection.string} element of the return value, but the value is
-  (from \pkg{RIfxDB} 1.3-0) replaced by \code{******}.  (This will break
+  (from \pkg{IfxR} 1.3-0) replaced by \code{******}.  (This will break
   \code{odbcReConnect}.)
 #ifdef windows
 
@@ -161,7 +161,7 @@ odbcConnectExcel2007(xls.file, readOnly = TRUE, ...)
 }
 
 \note{
-  Several errors which have been reported as bugs in \pkg{RIfxDB} 1.3-0
+  Several errors which have been reported as bugs in \pkg{IfxR} 1.3-0
   which were in fact ODBC driver errors that can be circumvented by
   setting \code{rows_at_time = 1} (and the warning under that argument has
   always been there).  The drivers involved have been third-party
@@ -170,7 +170,7 @@ odbcConnectExcel2007(xls.file, readOnly = TRUE, ...)
 
 \value{
   A non-negative integer which is used as handle if no error occurred,
-  \code{-1} otherwise.  A successful return has class \code{"RIfxDB"}, and
+  \code{-1} otherwise.  A successful return has class \code{"IfxR"}, and
   attributes including
   \item{connection.string}{the full ODBC connection string.}
   \item{case}{the value of \code{case}.}

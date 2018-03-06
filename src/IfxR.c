@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////
-// file RIfxDB/R/RIfxDB.R
+// file IfxR/R/IfxR.R
 //
 // copyright 2017  Sathyanesh Krishnan
 // copyright 2017  Javier Sagrera
@@ -7,7 +7,7 @@
 ///////////////////////////////////////////////////////////////
 
 /*
- *  RODDC/src/RIfxDB.c
+ *  RODDC/src/IfxR.c
  *         M. Lapsley Copyright (C) 1999-2002
  *         B. D. Ripley  Copyright (C) 2002-2017
  *
@@ -25,7 +25,7 @@
  *  http://www.r-project.org/Licenses/
  */
 
- /* RIfxDB low level interface
+ /* IfxR low level interface
   *
   */
 #include "config.h"
@@ -64,7 +64,7 @@ __declspec(dllimport) window RConsole;
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
-#define _(String) dgettext ("RIfxDB", String)
+#define _(String) dgettext ("IfxR", String)
 #define gettext_noop(String) String
 #else
 #define _(String) (String)
@@ -133,7 +133,7 @@ typedef struct mess {
     struct mess	*next;
 } SQLMSG;
 
-typedef struct rifxdbHandle {
+typedef struct IfxRHandle {
     SQLHDBC	hDbc;         /* connection handle */
     SQLHSTMT	hStmt;        /* statement handle */
     SQLLEN	nRows;        /* number of rows and columns in result set */
@@ -150,24 +150,24 @@ typedef struct rifxdbHandle {
     SQLMSG	*msglist;	/* root of linked list of messages */
     SEXP        extPtr;		/* address of external pointer for this
                    channel, so we can clear it */
-} RIfxDBHandle, *pRIfxDBHandle;
+} IfxRHandle, *pIfxRHandle;
 
 static unsigned int nChannels = 0; /* number of channels opened in session */
-static pRIfxDBHandle opened_handles[MAX_CHANNELS + 1];
+static pIfxRHandle opened_handles[MAX_CHANNELS + 1];
 
 static SQLHENV hEnv = NULL;
 
 /* forward declarations */
-static void geterr(pRIfxDBHandle thisHandle);
+static void geterr(pIfxRHandle thisHandle);
 static void errorFree(SQLMSG *node);
-static void errlistAppend(pRIfxDBHandle thisHandle, const char *string);
-static int cachenbind(pRIfxDBHandle thisHandle, int nRows);
+static void errlistAppend(pIfxRHandle thisHandle, const char *string);
+static int cachenbind(pIfxRHandle thisHandle, int nRows);
 
 
 /* Error messages */
 
 static char
-err_SQLAllocStmt[] = gettext_noop("[RIfxDB] ERROR: Could not SQLAllocStmt");
+err_SQLAllocStmt[] = gettext_noop("[IfxR] ERROR: Could not SQLAllocStmt");
 
 /* called at first connection or first listing of data sources */
 static void odbcInit(void)
@@ -183,12 +183,12 @@ static void odbcInit(void)
                 (SQLPOINTER)SQL_OV_ODBC3, SQL_IS_INTEGER);
         }
         else
-            error(_("[RIfxDB] ERROR: Could not SQLAllocEnv"));
+            error(_("[IfxR] ERROR: Could not SQLAllocEnv"));
     }
 }
 
 /* called from .onUnload */
-SEXP RIfxDBTerm(void)
+SEXP IfxRTerm(void)
 {
     if (!hEnv) SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
     return R_NilValue;
@@ -196,7 +196,7 @@ SEXP RIfxDBTerm(void)
 
 
 /* called before SQL queries (indirect and direct) */
-static void clearresults(pRIfxDBHandle thisHandle)
+static void clearresults(pIfxRHandle thisHandle)
 {
     if (thisHandle->hStmt)
     {
@@ -208,7 +208,7 @@ static void clearresults(pRIfxDBHandle thisHandle)
     thisHandle->msglist = NULL;
 }
 
-SEXP RIfxDBclearresults(SEXP chan)
+SEXP IfxRclearresults(SEXP chan)
 {
     clearresults(R_ExternalPtrAddr(chan));
     return R_NilValue;
@@ -249,7 +249,7 @@ void GetDiagRec( SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag
             // printf("\n SQLSTATE          = %s", state);
             // printf("\n Native Error Code = %ld", code);
             // printf("\n %s", msg);
-            warning( _("[RIfxDB] ERROR: state %s, code %d, message %s"), state, code, msg);
+            warning( _("[IfxR] ERROR: state %s, code %d, message %s"), state, code, msg);
             i++;
         }
         //printf("\n-------------------------\n");
@@ -267,23 +267,23 @@ void GetDiagRec( SQLRETURN rc, SQLSMALLINT htype, SQLHANDLE hndl, char *szMsgTag
  *	***************************************/
 static void chanFinalizer(SEXP ptr);
 
-SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
+SEXP IfxRDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
 {
     SEXP ans;
     SQLSMALLINT tmp1;
     SQLRETURN retval;
     SQLCHAR buf1[128] = "Sat Testing Only: connection.string";
-    pRIfxDBHandle thisHandle;
+    pIfxRHandle thisHandle;
 
     PROTECT(ans = allocVector(INTSXP, 1));
     INTEGER(ans)[0] = -1;
     if (!isString(connection))
     {
-        warning(_("[RIfxDB] ERROR:invalid connection argument"));
+        warning(_("[IfxR] ERROR:invalid connection argument"));
         UNPROTECT(1);
         return ans;
     }
-    thisHandle = Calloc(1, RIfxDBHandle);
+    thisHandle = Calloc(1, IfxRHandle);
     thisHandle->hDbc = NULL;
     ++nChannels;
 
@@ -346,7 +346,7 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
 
             SEXP constr, ptr;
 
-            ptr = R_MakeExternalPtr(thisHandle, install("RIfxDB_channel"),
+            ptr = R_MakeExternalPtr(thisHandle, install("IfxR_channel"),
                 R_NilValue);
             PROTECT(ptr);
             R_RegisterCFinalizerEx(ptr, chanFinalizer, TRUE);
@@ -384,17 +384,17 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
                         state, &code, msg, buffsize,
                         &msglen);
                     if (retval == SQL_NO_DATA_FOUND) break;
-                    warning(_("[RIfxDB] ERROR: state %s, code %d, message %s"),
+                    warning(_("[IfxR] ERROR: state %s, code %d, message %s"),
                         state, code, msg);
                 }
             }
-            else warning(_("[RIfxDB] ERROR: Could not SQLDriverConnect"));
+            else warning(_("[IfxR] ERROR: Could not SQLDriverConnect"));
             (void)SQLFreeHandle(SQL_HANDLE_DBC, thisHandle->hDbc);
         }
     }
     else
     {
-        warning(_("[RIfxDB] ERROR: Could not SQLAllocConnect"));
+        warning(_("[IfxR] ERROR: Could not SQLAllocConnect"));
     }
     UNPROTECT(1);
     return ans;
@@ -408,9 +408,9 @@ SEXP RIfxDBDriverConnect(SEXP connection, SEXP id, SEXP useNRows, SEXP ReadOnly)
  *		cache col descriptor data in handles[channel].ColData
  *		return -1 in stat on error or 1
  * *****************************************************/
-SEXP RIfxDBQuery(SEXP chan, SEXP query, SEXP sRows)
+SEXP IfxRQuery(SEXP chan, SEXP query, SEXP sRows)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLRETURN res;
     int nRows = asInteger(sRows), stat = 1;
     const char *cquery;
@@ -436,7 +436,7 @@ SEXP RIfxDBQuery(SEXP chan, SEXP query, SEXP sRows)
         {
             char *message = Calloc(strlen(cquery) + 50, char);
             sprintf(message,
-                "[RIfxDB] ERROR: Could not SQLExecDirect '%s'", cquery);
+                "[IfxR] ERROR: Could not SQLExecDirect '%s'", cquery);
             geterr(thisHandle);
             errlistAppend(thisHandle, message);
             (void)SQLFreeHandle(SQL_HANDLE_STMT, thisHandle->hStmt);
@@ -463,10 +463,10 @@ SEXP RIfxDBQuery(SEXP chan, SEXP query, SEXP sRows)
  * get primary key
  *
  * *************************************************/
-SEXP RIfxDBPrimaryKeys(SEXP chan, SEXP table, SEXP cat, SEXP schem)
+SEXP IfxRPrimaryKeys(SEXP chan, SEXP table, SEXP cat, SEXP schem)
 {
     int stat = 1;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLRETURN res;
     const char *catalog = NULL, *schema = NULL;
     SQLSMALLINT len1 = 0, len2 = 0;
@@ -497,7 +497,7 @@ SEXP RIfxDBPrimaryKeys(SEXP chan, SEXP table, SEXP cat, SEXP schem)
             (SQLCHAR *)schema, len2,
             (SQLCHAR *)translateChar(STRING_ELT(table, 0)),
             SQL_NTS);
-        success_or_failure(_("[RIfxDB] ERROR: Failure in SQLPrimary keys"));
+        success_or_failure(_("[IfxR] ERROR: Failure in SQLPrimary keys"));
     }
     return ScalarInteger(stat);
 }
@@ -508,10 +508,10 @@ SEXP RIfxDBPrimaryKeys(SEXP chan, SEXP table, SEXP cat, SEXP schem)
  *	Get column data
  *
  *	********************************/
-SEXP RIfxDBColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem, SEXP sLiteral)
+SEXP IfxRColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem, SEXP sLiteral)
 {
     int stat = 1;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLRETURN res;
     const char *catalog = NULL, *schema = NULL;
     int literal;
@@ -548,16 +548,16 @@ SEXP RIfxDBColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem, SEXP sLiteral)
             (SQLCHAR *)schema, len2,
             (SQLCHAR *)translateChar(STRING_ELT(table, 0)),
             SQL_NTS, NULL, 0);
-        success_or_failure(_("[RIfxDB] ERROR: Failure in SQLColumns"));
+        success_or_failure(_("[IfxR] ERROR: Failure in SQLColumns"));
     }
     return ScalarInteger(stat);
 }
 
 
-SEXP RIfxDBSpecialColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem)
+SEXP IfxRSpecialColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem)
 {
     int stat = 1;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLRETURN res;
     const char *catalog = NULL, *schema = NULL;
     SQLSMALLINT len1 = 0, len2 = 0;
@@ -589,7 +589,7 @@ SEXP RIfxDBSpecialColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem)
             (SQLCHAR *)translateChar(STRING_ELT(table, 0)),
             SQL_NTS,
             SQL_SCOPE_TRANSACTION, SQL_NULLABLE);
-        success_or_failure(_("[RIfxDB] ERROR: Failure in SQLSpecialColumns"));
+        success_or_failure(_("[IfxR] ERROR: Failure in SQLSpecialColumns"));
     }
     return ScalarInteger(stat);
 }
@@ -600,10 +600,10 @@ SEXP RIfxDBSpecialColumns(SEXP chan, SEXP table, SEXP cat, SEXP schem)
  *
  * ***************************************/
 
-SEXP RIfxDBTables(SEXP chan, SEXP cat, SEXP schem, SEXP name, SEXP type,
+SEXP IfxRTables(SEXP chan, SEXP cat, SEXP schem, SEXP name, SEXP type,
     SEXP sLiteral)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLRETURN res;
     const char *catalog = NULL, *schema = NULL, *tName = NULL, *tType = NULL;
     int stat = 1, literal;
@@ -651,7 +651,7 @@ SEXP RIfxDBTables(SEXP chan, SEXP cat, SEXP schem, SEXP name, SEXP type,
             (SQLCHAR *)schema, len2,
             (SQLCHAR *)tName, len3,
             (SQLCHAR *)tType, len4);
-        success_or_failure(_("[RIfxDB] ERROR: SQLTables failed"));
+        success_or_failure(_("[IfxR] ERROR: SQLTables failed"));
     }
     return ScalarInteger(stat);
 }
@@ -662,9 +662,9 @@ SEXP RIfxDBTables(SEXP chan, SEXP cat, SEXP schem, SEXP name, SEXP type,
  *
  * ***************************************/
 
-SEXP RIfxDBTypeInfo(SEXP chan, SEXP ptype)
+SEXP IfxRTypeInfo(SEXP chan, SEXP ptype)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     short type;
     SQLRETURN res;
     int stat = TRUE;
@@ -703,16 +703,16 @@ SEXP RIfxDBTypeInfo(SEXP chan, SEXP ptype)
         }
 
         res = SQLGetTypeInfo(thisHandle->hStmt, type);
-        success_or_failure(_("[RIfxDB] ERROR: SQLTables failed"));
+        success_or_failure(_("[IfxR] ERROR: SQLTables failed"));
     }
     return ScalarLogical(stat);
 }
 
-SEXP RIfxDBGetInfo(SEXP chan)
+SEXP IfxRGetInfo(SEXP chan)
 {
     SEXP ans;
     int i;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     char buf[1000];
     SQLSMALLINT nbytes;
     SQLRETURN retval;
@@ -740,7 +740,7 @@ SEXP RIfxDBGetInfo(SEXP chan)
     return ans;
 }
 
-static void cachenbind_free(pRIfxDBHandle thisHandle)
+static void cachenbind_free(pIfxRHandle thisHandle)
 {
     SQLUSMALLINT i;
     if (thisHandle->ColData)
@@ -764,11 +764,11 @@ static void cachenbind_free(pRIfxDBHandle thisHandle)
  *
  *	Common column cache and bind for query-like routines
  *      This is used to bind the columns for all queries that
- *      produce a result set, which is uses by RIfxDBFetchRows.
+ *      produce a result set, which is uses by IfxRFetchRows.
  *
  *	*******************************************/
  /* returns 1 for success, -1 for failure */
-static int cachenbind(pRIfxDBHandle thisHandle, int nRows)
+static int cachenbind(pIfxRHandle thisHandle, int nRows)
 {
     SQLUSMALLINT i;
     SQLRETURN retval;
@@ -785,7 +785,7 @@ static int cachenbind(pRIfxDBHandle thisHandle, int nRows)
     if (retval != SQL_SUCCESS && retval != SQL_SUCCESS_WITH_INFO)
     {
         geterr(thisHandle);
-        errlistAppend(thisHandle, _("[RIfxDB] ERROR: SQLRowCount failed"));
+        errlistAppend(thisHandle, _("[IfxR] ERROR: SQLRowCount failed"));
         goto error;
     }
     /* Allocate storage for ColData array,
@@ -839,7 +839,7 @@ static int cachenbind(pRIfxDBHandle thisHandle, int nRows)
         {
             geterr(thisHandle);
             errlistAppend(thisHandle,
-                _("[RIfxDB] ERROR: SQLDescribeCol failed"));
+                _("[IfxR] ERROR: SQLDescribeCol failed"));
             goto error;
         }
         /* now bind the col to its data buffer */
@@ -888,7 +888,7 @@ static int cachenbind(pRIfxDBHandle thisHandle, int nRows)
         if (retval != SQL_SUCCESS && retval != SQL_SUCCESS_WITH_INFO)
         {
             geterr(thisHandle);
-            errlistAppend(thisHandle, _("[RIfxDB] ERROR: SQLBindCol failed"));
+            errlistAppend(thisHandle, _("[IfxR] ERROR: SQLBindCol failed"));
             goto error;
         }
     }
@@ -902,12 +902,12 @@ error:
 
 /***************************************/
 
-SEXP RIfxDBNumCols(SEXP chan)
+SEXP IfxRNumCols(SEXP chan)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
 
     if (NCOLS == -1)
-        errlistAppend(thisHandle, _("[RIfxDB] No results available"));
+        errlistAppend(thisHandle, _("[IfxR] No results available"));
 
     return ScalarInteger((int)NCOLS);
 }
@@ -922,11 +922,11 @@ static SEXP mkRaw(char *ptr, unsigned int len)
 }
 
 
-SEXP RIfxDBFetchRows(SEXP chan, SEXP max, SEXP bs, SEXP nas, SEXP believeNRows)
+SEXP IfxRFetchRows(SEXP chan, SEXP max, SEXP bs, SEXP nas, SEXP believeNRows)
 {
     int stat = 1, i, j, blksize, nc, n, row;
     int maximum = asInteger(max);
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     int useNRows = asLogical(believeNRows) != 0;
     int buffsize = asInteger(bs);
     SEXP data, names, ans;
@@ -940,7 +940,7 @@ SEXP RIfxDBFetchRows(SEXP chan, SEXP max, SEXP bs, SEXP nas, SEXP believeNRows)
 
     if (nc == -1)
     {
-        errlistAppend(thisHandle, _("[RIfxDB] No results available"));
+        errlistAppend(thisHandle, _("[IfxR] No results available"));
         stat = -1;
     }
 
@@ -1127,15 +1127,15 @@ SEXP RIfxDBFetchRows(SEXP chan, SEXP max, SEXP bs, SEXP nas, SEXP believeNRows)
 
 /**********************************************************************/
 
-SEXP RIfxDBColData(SEXP chan)
+SEXP IfxRColData(SEXP chan)
 {
     SEXP ans, names, type, ansnames;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     int i, nc;
 
     PROTECT(ans = allocVector(VECSXP, 2));
     if (NCOLS == -1)
-        errlistAppend(thisHandle, _("[RIfxDB] No results available"));
+        errlistAppend(thisHandle, _("[IfxR] No results available"));
     nc = NCOLS;
     if (nc < 0) nc = 0;
     SET_VECTOR_ELT(ans, 0, names = allocVector(STRSXP, nc));
@@ -1187,10 +1187,10 @@ SEXP RIfxDBColData(SEXP chan)
 
 /*********************************************************/
 
-SEXP RIfxDBUpdate(SEXP chan, SEXP query, SEXP data, SEXP dataseq,
+SEXP IfxRUpdate(SEXP chan, SEXP query, SEXP data, SEXP dataseq,
     SEXP params, SEXP test)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     int rows, i, j, k, stat = 1, vtest = asInteger(test), nparams;
     int *sequence = INTEGER(dataseq);
     const char *cquery = translateChar(STRING_ELT(query, 0));
@@ -1215,7 +1215,7 @@ SEXP RIfxDBUpdate(SEXP chan, SEXP query, SEXP data, SEXP dataseq,
     {
         char *message = Calloc(strlen(cquery) + 50, char);
         sprintf(message,
-            "[RIfxDB] ERROR: Could not SQLPrepare '%s'", cquery);
+            "[IfxR] ERROR: Could not SQLPrepare '%s'", cquery);
         geterr(thisHandle);
         errlistAppend(thisHandle, message);
         (void)SQLFreeHandle(SQL_HANDLE_STMT, thisHandle->hStmt);
@@ -1291,7 +1291,7 @@ SEXP RIfxDBUpdate(SEXP chan, SEXP query, SEXP data, SEXP dataseq,
         if (res != SQL_SUCCESS && res != SQL_SUCCESS_WITH_INFO)
         {
             geterr(thisHandle);
-            errlistAppend(thisHandle, _("[RIfxDB] SQLBindParameter failed"));
+            errlistAppend(thisHandle, _("[IfxR] SQLBindParameter failed"));
             geterr(thisHandle);
             stat = -1;
             goto end;
@@ -1358,7 +1358,7 @@ SEXP RIfxDBUpdate(SEXP chan, SEXP query, SEXP data, SEXP dataseq,
             res = SQLExecute(thisHandle->hStmt);
             if (res != SQL_SUCCESS && res != SQL_SUCCESS_WITH_INFO)
             {
-                errlistAppend(thisHandle, _("[RIfxDB] Failed exec in Update"));
+                errlistAppend(thisHandle, _("[IfxR] Failed exec in Update"));
                 geterr(thisHandle);
                 stat = -1;
                 goto end;
@@ -1380,7 +1380,7 @@ end:
  *
  * **********************************************/
 
-static int inRIfxDBClose(pRIfxDBHandle thisHandle)
+static int inIfxRClose(pIfxRHandle thisHandle)
 {
     int success = 1;
     SQLRETURN retval;
@@ -1391,13 +1391,13 @@ static int inRIfxDBClose(pRIfxDBHandle thisHandle)
     if (retval != SQL_SUCCESS && retval != SQL_SUCCESS_WITH_INFO)
     {
         /* was errlist_append, but errorlist is squashed before return! */
-        warning(_("[RIfxDB] Error in SQLDisconnect"));
+        warning(_("[IfxR] Error in SQLDisconnect"));
         success = -1;
     }
     retval = SQLFreeHandle(SQL_HANDLE_DBC, thisHandle->hDbc);
     if (retval != SQL_SUCCESS && retval != SQL_SUCCESS_WITH_INFO)
     {
-        warning(_("[RIfxDB] Error in SQLFreeconnect"));
+        warning(_("[IfxR] Error in SQLFreeconnect"));
         success = -1;
     }
     cachenbind_free(thisHandle);
@@ -1407,29 +1407,29 @@ static int inRIfxDBClose(pRIfxDBHandle thisHandle)
     return success;
 }
 
-SEXP RIfxDBClose(SEXP chan)
+SEXP IfxRClose(SEXP chan)
 {
-    return ScalarInteger(inRIfxDBClose(R_ExternalPtrAddr(chan)));
+    return ScalarInteger(inIfxRClose(R_ExternalPtrAddr(chan)));
 }
 
 static void chanFinalizer(SEXP ptr)
 {
     if (!R_ExternalPtrAddr(ptr)) return;
     /* Rprintf("finalizing %p\n", R_ExternalPtrAddr(ptr)); */
-    warning(_("closing unused RIfxDB handle %d\n"),
-        ((pRIfxDBHandle)R_ExternalPtrAddr(ptr))->channel);
-    inRIfxDBClose(R_ExternalPtrAddr(ptr));
+    warning(_("closing unused IfxR handle %d\n"),
+        ((pIfxRHandle)R_ExternalPtrAddr(ptr))->channel);
+    inIfxRClose(R_ExternalPtrAddr(ptr));
     R_ClearExternalPtr(ptr); /* not really needed */
 }
 
 
-SEXP RIfxDBCloseAll(void)
+SEXP IfxRCloseAll(void)
 {
     int i;
 
     for (i = 1; i <= my_min(nChannels, MAX_CHANNELS); i++)
         if (opened_handles[i])
-            inRIfxDBClose(opened_handles[i]);
+            inIfxRClose(opened_handles[i]);
 
     return R_NilValue;
 }
@@ -1444,7 +1444,7 @@ SEXP RIfxDBCloseAll(void)
  * Don't use while !SQL_NO_DATA 'cause iodbc does not support it
  *****************************************/
 static void
-geterr(pRIfxDBHandle thisHandle)
+geterr(pIfxRHandle thisHandle)
 {
     SQLCHAR sqlstate[6], msg[SQL_MAX_MESSAGE_LENGTH];
     SQLINTEGER NativeError;
@@ -1480,7 +1480,7 @@ static char *mystrdup(const char *s)
 }
 
 
-static void errlistAppend(pRIfxDBHandle thisHandle, const char *string)
+static void errlistAppend(pIfxRHandle thisHandle, const char *string)
 {
     SQLMSG *root;
     SQLCHAR *buffer;
@@ -1488,7 +1488,7 @@ static void errlistAppend(pRIfxDBHandle thisHandle, const char *string)
     /* do this strdup so that all the message chain can be freed*/
     if ((buffer = (SQLCHAR *)mystrdup(string)) == NULL)
     {
-        REprintf("RIfxDB.c: Memory Allocation failure for message string\n");
+        REprintf("IfxR.c: Memory Allocation failure for message string\n");
         return;
     }
     root = thisHandle->msglist;
@@ -1516,10 +1516,10 @@ static void errlistAppend(pRIfxDBHandle thisHandle, const char *string)
 
 /***************************************/
 /* currently unused */
-SEXP RIfxDBErrMsgCount(SEXP chan)
+SEXP IfxRErrMsgCount(SEXP chan)
 {
     int i = 0;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLMSG *root;
 
     root = thisHandle->msglist;
@@ -1538,11 +1538,11 @@ SEXP RIfxDBErrMsgCount(SEXP chan)
 
 /******************************/
 
-SEXP RIfxDBGetErrMsg(SEXP chan)
+SEXP IfxRGetErrMsg(SEXP chan)
 {
     SEXP ans;
     int i, num;
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     SQLMSG *root;
 
     /* count the messages */
@@ -1577,9 +1577,9 @@ SEXP RIfxDBGetErrMsg(SEXP chan)
 
 /********/
 
-SEXP RIfxDBClearError(SEXP chan)
+SEXP IfxRClearError(SEXP chan)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
 
     errorFree(thisHandle->msglist);
     thisHandle->msglist = NULL;
@@ -1606,10 +1606,10 @@ static void errorFree(SQLMSG *node)
  * will cause segfault on most functions
  */
 
-SEXP RIfxDBcheckchannel(SEXP chan, SEXP id)
+SEXP IfxRcheckchannel(SEXP chan, SEXP id)
 {
     SEXP ptr = getAttrib(chan, install("handle_ptr"));
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(ptr);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(ptr);
 
     return ScalarLogical(thisHandle && TYPEOF(ptr) == EXTPTRSXP &&
         thisHandle->channel == asInteger(chan) &&
@@ -1619,9 +1619,9 @@ SEXP RIfxDBcheckchannel(SEXP chan, SEXP id)
 /***********************
  * Set connection auto-commit mode
  */
-SEXP RIfxDBSetAutoCommit(SEXP chan, SEXP autoCommit)
+SEXP IfxRSetAutoCommit(SEXP chan, SEXP autoCommit)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     int iAutoCommit = asLogical(autoCommit) != 0;
     int rc;
 
@@ -1639,9 +1639,9 @@ SEXP RIfxDBSetAutoCommit(SEXP chan, SEXP autoCommit)
 /***********************
  * Commit or rollback a transaction
  */
-SEXP RIfxDBEndTran(SEXP chan, SEXP sCommit)
+SEXP IfxREndTran(SEXP chan, SEXP sCommit)
 {
-    pRIfxDBHandle thisHandle = R_ExternalPtrAddr(chan);
+    pIfxRHandle thisHandle = R_ExternalPtrAddr(chan);
     int rc;
 
     rc = SQLEndTran(SQL_HANDLE_DBC, thisHandle->hDbc,
@@ -1651,7 +1651,7 @@ SEXP RIfxDBEndTran(SEXP chan, SEXP sCommit)
 
 
 /*
-SEXP RIfxDBListDataSources(SEXP stype)
+SEXP IfxRListDataSources(SEXP stype)
 {
     SEXP ans, nm;
     PROTECT_INDEX pidx, nidx;
@@ -1724,33 +1724,33 @@ SEXP MyPi()
 #include <R_ext/Rdynload.h>
 
 static const R_CallMethodDef CallEntries[] = {
-    {"RIfxDBGetErrMsg", (DL_FUNC)&RIfxDBGetErrMsg, 1},
-    {"RIfxDBClearError", (DL_FUNC)&RIfxDBClearError, 1},
-    {"RIfxDBDriverConnect", (DL_FUNC)&RIfxDBDriverConnect, 4},
-    {"RIfxDBQuery", (DL_FUNC)&RIfxDBQuery, 3},
-    {"RIfxDBUpdate", (DL_FUNC)&RIfxDBUpdate, 6},
-    {"RIfxDBTables", (DL_FUNC)&RIfxDBTables, 6},
-    {"RIfxDBColumns", (DL_FUNC)&RIfxDBColumns, 5},
-    {"RIfxDBSpecialColumns", (DL_FUNC)&RIfxDBSpecialColumns, 4},
-    {"RIfxDBPrimaryKeys", (DL_FUNC)&RIfxDBPrimaryKeys, 4},
-    {"RIfxDBColData", (DL_FUNC)&RIfxDBColData, 1},
-    {"RIfxDBNumCols", (DL_FUNC)&RIfxDBNumCols, 1},
-    {"RIfxDBClose", (DL_FUNC)&RIfxDBClose, 1},
-    {"RIfxDBCloseAll", (DL_FUNC)&RIfxDBCloseAll, 0},
-    {"RIfxDBFetchRows", (DL_FUNC)&RIfxDBFetchRows, 5},
-    {"RIfxDBGetInfo", (DL_FUNC)&RIfxDBGetInfo, 1},
-    {"RIfxDBcheckchannel", (DL_FUNC)&RIfxDBcheckchannel, 2},
-    {"RIfxDBclearresults", (DL_FUNC)&RIfxDBclearresults, 1},
-    {"RIfxDBSetAutoCommit", (DL_FUNC)&RIfxDBSetAutoCommit, 2},
-    {"RIfxDBEndTran", (DL_FUNC)&RIfxDBEndTran, 2},
-    {"RIfxDBTypeInfo", (DL_FUNC)&RIfxDBTypeInfo, 2},
-    //{"RIfxDBListDataSources", (DL_FUNC)&RIfxDBListDataSources, 1},
-    {"RIfxDBTerm", (DL_FUNC)&RIfxDBTerm, 0},
+    {"IfxRGetErrMsg", (DL_FUNC)&IfxRGetErrMsg, 1},
+    {"IfxRClearError", (DL_FUNC)&IfxRClearError, 1},
+    {"IfxRDriverConnect", (DL_FUNC)&IfxRDriverConnect, 4},
+    {"IfxRQuery", (DL_FUNC)&IfxRQuery, 3},
+    {"IfxRUpdate", (DL_FUNC)&IfxRUpdate, 6},
+    {"IfxRTables", (DL_FUNC)&IfxRTables, 6},
+    {"IfxRColumns", (DL_FUNC)&IfxRColumns, 5},
+    {"IfxRSpecialColumns", (DL_FUNC)&IfxRSpecialColumns, 4},
+    {"IfxRPrimaryKeys", (DL_FUNC)&IfxRPrimaryKeys, 4},
+    {"IfxRColData", (DL_FUNC)&IfxRColData, 1},
+    {"IfxRNumCols", (DL_FUNC)&IfxRNumCols, 1},
+    {"IfxRClose", (DL_FUNC)&IfxRClose, 1},
+    {"IfxRCloseAll", (DL_FUNC)&IfxRCloseAll, 0},
+    {"IfxRFetchRows", (DL_FUNC)&IfxRFetchRows, 5},
+    {"IfxRGetInfo", (DL_FUNC)&IfxRGetInfo, 1},
+    {"IfxRcheckchannel", (DL_FUNC)&IfxRcheckchannel, 2},
+    {"IfxRclearresults", (DL_FUNC)&IfxRclearresults, 1},
+    {"IfxRSetAutoCommit", (DL_FUNC)&IfxRSetAutoCommit, 2},
+    {"IfxREndTran", (DL_FUNC)&IfxREndTran, 2},
+    {"IfxRTypeInfo", (DL_FUNC)&IfxRTypeInfo, 2},
+    //{"IfxRListDataSources", (DL_FUNC)&IfxRListDataSources, 1},
+    {"IfxRTerm", (DL_FUNC)&IfxRTerm, 0},
     {"MyPi", (DL_FUNC)&MyPi, 0},
     {NULL, NULL, 0}
 };
 
-void R_init_RIfxDB(DllInfo *dllInfo)
+void R_init_IfxR(DllInfo *dllInfo)
 {
     R_registerRoutines(dllInfo, NULL, CallEntries, NULL, NULL);
     // R_useDynamicSymbols(dllInfo, FALSE);

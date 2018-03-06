@@ -1,16 +1,16 @@
-% file RIfxDB/man/RIfxDB-package.Rd
+% file IfxR/man/IfxR-package.Rd
 % copyright (C) 1999-2013  M. Lapsley and B. D. Ripley
 %
-\name{RIfxDB-package}
-\alias{RIfxDB}
+\name{IfxR-package}
+\alias{IfxR}
 \title{ODBC Database Connectivity}
 
 \description{
-  Package \pkg{RIfxDB} implements ODBC database connectivity.
+  Package \pkg{IfxR} implements ODBC database connectivity.
 
   See the package manual for details of installation and use.  (This
   will show up as a vignette, and can be accessed \emph{via}
-  \code{RShowDoc("RIfxDB", package="RIfxDB")}.)
+  \code{RShowDoc("IfxR", package="IfxR")}.)
 }
 
 \details{

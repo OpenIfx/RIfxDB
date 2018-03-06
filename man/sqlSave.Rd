@@ -1,4 +1,4 @@
-% file RIfxDB/man/sqlSave.Rd
+% file IfxR/man/sqlSave.Rd
 % copyright (C) 1999-2002  M. Lapsley
 % copyright (C) 2002-2013  B. D. Ripley
 %

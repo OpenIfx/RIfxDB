@@ -1,7 +1,7 @@
-% file RIfxDB/man/RIfxDB-internal.Rd
+% file IfxR/man/IfxR-internal.Rd
 % copyright (C) 1999-2013  M. Lapsley and B. D. Ripley
 %
-\name{RIfxDB-internal}
+\name{IfxR-internal}
 \alias{odbcUpdate}
 \alias{odbcCaseFlag}
 \alias{odbcColumns}
@@ -13,9 +13,9 @@
 \alias{odbcClearResults}
 \alias{odbcValidChannel}
 
-\title{Internal RIfxDB functions}
+\title{Internal IfxR functions}
 \description{
-  Internal RIfxDB functions: not exported from the \pkg{RIfxDB} name space.
+  Internal IfxR functions: not exported from the \pkg{IfxR} name space.
 }
 \usage{
 odbcUpdate(channel, query, data, params, test = FALSE,
