@@ -1,12 +1,10 @@
-# IfxR
-Informix native R driver
+### IfxR
+Informix native R driver is a high performing data access interface suitable for highly scalable enterprise and IoT solutions to works with Informix database. Whether you are building an IoT solution or an Artificial Intelligence application, Informix can offer something for you and we are more than happy to help you on your journey to success!
+
   
-## Project Status : **Alpha**
-.
+#### Project Status : **Alpha**
 
-
-
-
+#### Windows
 ### System setup to create the package
 * [Install R](https://cran.r-project.org/)
 * [Rtools](https://cran.rstudio.com/bin/windows/Rtools/) (GNU C/C++ compiler is part of it. **FYI**: I may advice it to be installed at default location which is **C:\Rtools**, to avoid extra build setup)
@@ -14,13 +12,13 @@ Informix native R driver
 * [RStudio](https://www.rstudio.com/) (Optional: it is convenient to use, but no need of it if you plan to use only command line build.)
 
 
-#### Windows
-```
+```bash
+# Make the version/dir change according to your installations. 
 SET CSDK_HOME=c:/informix
 SET PATH=C:\Dev\R\R-3.4.3\bin\x64;C:\Dev\MiKTeX2.9\miktex\bin\x64\;c:\Rtools\bin;c:\Rtools\mingw_64\bin;%PATH%
 ```
 
-### Building the shared library in nutshell
+### Building the driver native library
 The two main activities involved in building an R package is building the R runtime library and building R manuals.  For building shared library from it C/C++ source code R uses GNU C/C++ compiler.  When you are building it on windows platform you may install Rtools, it contain all necessary utility to complete the build. In short Rtools provides a toolchain for Windows platform that work well with R. It mainly includes GNU make, GNU gcc (from MinGW), and other utilities commonly used on UNIX-ish platform.
 
 
@@ -34,6 +32,10 @@ c:/Rtools/mingw_64/bin/gcc  -I"C:/Dev/R/R-3.4.3/include" -DNDEBUG     -I"d:/Comp
 c:/Rtools/mingw_64/bin/gcc -shared -s -static-libgcc -o IfxR.dll tmp.def IfxR.o -Ld:/Compiler/gcc-4.9.3/local330/lib/x64 -Ld:/Compiler/gcc-4.9.3/local330/lib -LC:/Dev/R/R-3.4.1/bin/x64 -lR
 ```
 
+##### Install
+```
+#R CMD INSTALL
+```
 
 
 #### Linux
