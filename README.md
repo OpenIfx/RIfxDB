@@ -1,14 +1,26 @@
 # IfxR
 Informix native R driver
   
-## Project Status : **On the drawing board**
+## Project Status : **Alpha**
 .
 
 
 
-### Hikers are welcome beyond this point
-----------------------------------------
-Experimental ....
+
+### System setup to create the package
+#### Windows
+* [Install R](https://cran.r-project.org/)
+* [Rtools](https://cran.rstudio.com/bin/windows/Rtools/) (GNU C/C++ compiler is part of it. **FYI**: I may advice it to be installed at default location which is **C:\Rtools**, to avoid extra build setup)
+* [LaTeX](https://miktex.org/download) (To create R manuals; a complete build of R including PDF manuals too)
+* [RStudio](https://www.rstudio.com/) (Optional: it is convenient to use, but no need of it if you plan to use only command line build.)
+
+
+
+#### Linux
+TODO: 
+
+
+#### Experimental ....
 
 #### Database setup
 ```sql
