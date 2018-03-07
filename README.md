@@ -73,7 +73,7 @@ TODO:
 # Rscript  Sample1.R 
 library(IfxR)
 
-ch <- IfxConnect( "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=Blue4You;" )
+ch <- IfxConnect( "SERVER=ids0;DATABASE=db1;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=xxxx;" )
 
 sql <- c( "create table t1 ( c1 int, c2 char(20), c3 int, c4 int ) ", 
 "insert into t1 values( 1, 'Sunday', 101, 201 );", 
