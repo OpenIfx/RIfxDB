@@ -1,13 +1,14 @@
 ### [IfxR](https://openinformix.github.io/IfxR/)
-Informix native R driver is a high performing data access interface suitable for highly scalable enterprise and IoT solutions to works with Informix database. Whether you are building an IoT solution or an Artificial Intelligence application, Informix can offer something for you and we are more than happy to help you on your journey to success!
-
+Informix native R driver is a high performing data access interface suitable for highly scalable data science and machine learning operations. The core of the driver is written in C language for better efficiency and performance to makes it suitable for IoT and enterprise application while maintaining platform compatibility.  Are your IoT devices generating lot of data? Try applying ML algorithm to uncover hidden patterns and get new insights. Whether you are building an IoT solution or an Artificial Intelligence application, Informix can offer something for you and we are more than happy to help you on your journey to success!  
   
+If you have any suggestion we would like to hear from you, The development activities of the driver are powered by passion, dedication and independent thinking. You may send pull request, together we grow as an open community; relevant discussion and queries are answered by community through stackoverflow. [http://stackoverflow.com/questions/tagged/informix](http://stackoverflow.com/questions/tagged/informix)  
+
+
 #### Project Status : **Alpha**
 
 
 ### Driver installation
-
-We will be working on creating R package for the driver on all major platform. For the time being you may use a prebuilt binary (IfxR.zip) of the driver if you are Windows 64bit platform.  
+We will be working on creating R package for the driver on all major platform. For the time being you may use a prebuilt binary (IfxR.zip) of the driver if you are on Windows 64bit platform. All other platforms you may perform local build to create the driver. 
 
 
 ##### Windows: prebuilt driver binary
@@ -18,8 +19,8 @@ IfxR\prebuilt\Win64\IfxR.zip
 # Unzip the IfxR.zip at library folder of your R installation.
 # Eg:
 # git clone https://github.com/OpenInformix/IfxR.git
-# copy IfxR\prebuilt\Win64\IfxR.zip C:\R\R-3.4.3\library
-# unzip IfxR.zip
+# if your R installation is at C:\R\R-3.4.3 then
+# Unzip IfxR\prebuilt\Win64\IfxR.zip at C:\R\R-3.4.3\library
 C:\R\R-3.4.3\library
 ```
 
@@ -31,7 +32,7 @@ The two main activities involved in building an R package is building the R runt
 
 #### Windows: Software requirements
 * [Install R](https://cran.r-project.org/)
-* [Rtools](https://cran.rstudio.com/bin/windows/Rtools/) (GNU C/C++ compiler is part of it. **FYI**: I may advice it to be installed at default location which is **C:\Rtools**, to avoid extra build setup)
+* [Rtools](https://cran.rstudio.com/bin/windows/Rtools/) (GNU C/C++ compiler is part of it. **FYI**: the advice is to install it at default location which is **C:\Rtools**, to avoid extra build setup)
 * [LaTeX](https://miktex.org/download) (To create R manuals; a complete build of R including PDF manuals too)
 * [RStudio](https://www.rstudio.com/) (Optional: it is convenient to use, but no need of it if you plan to use only command line build.)
 
@@ -66,8 +67,6 @@ R CMD INSTALL  IfxR_0.1.0.tar.gz
 #### Linux
 TODO: 
 
-
-#### Experimental ....
 
 #### Database setup
 ```sql
