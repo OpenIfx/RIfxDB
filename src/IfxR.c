@@ -1650,63 +1650,6 @@ SEXP IfxREndTran(SEXP chan, SEXP sCommit)
 }
 
 
-/*
-SEXP IfxRListDataSources(SEXP stype)
-{
-    SEXP ans, nm;
-    PROTECT_INDEX pidx, nidx;
-
-    UWORD fDirection = SQL_FETCH_FIRST;
-    SQLRETURN retval;
-    SQLCHAR szDSN[SQL_MAX_DSN_LENGTH + 1];
-    SQLCHAR szDescription[100];
-    char message[SQL_MAX_DSN_LENGTH + 101];
-    int i = 0, ni = 100, type = asInteger(stype);
-
-    odbcInit();
-    switch (type)
-    {
-    case 2:  fDirection = SQL_FETCH_FIRST_USER; break;
-    case 3:  fDirection = SQL_FETCH_FIRST_SYSTEM; break;
-    default: fDirection = SQL_FETCH_FIRST; break;
-    }
-
-    PROTECT_WITH_INDEX(ans = allocVector(STRSXP, ni), &pidx);
-    PROTECT_WITH_INDEX(nm = allocVector(STRSXP, ni), &nidx);
-    do
-    {
-        retval = SQLDataSources(hEnv, fDirection,
-            (UCHAR *)szDSN, sizeof(szDSN), NULL,
-            (UCHAR *)szDescription,
-            sizeof(szDescription), NULL);
-        if (retval == SQL_NO_DATA) break;
-        if (retval != SQL_SUCCESS && retval != SQL_SUCCESS_WITH_INFO)
-        {
-            sprintf(message, "SQLDataSources returned: %d", retval);
-            SET_STRING_ELT(ans, i, mkChar(message));
-        }
-        else
-        {
-            SET_STRING_ELT(nm, i, mkChar((char *)szDSN));
-            SET_STRING_ELT(ans, i, mkChar((char *)szDescription));
-        }
-        fDirection = SQL_FETCH_NEXT;
-        i++;
-        if (i >= ni - 1)
-        {
-            ni *= 2;
-            REPROTECT(ans = lengthgets(ans, ni), pidx);
-            REPROTECT(nm = lengthgets(nm, ni), nidx);
-        }
-    } while (retval == SQL_SUCCESS || retval == SQL_SUCCESS_WITH_INFO);
-
-    REPROTECT(ans = lengthgets(ans, i), pidx);
-    REPROTECT(nm = lengthgets(nm, i), nidx);
-    setAttrib(ans, R_NamesSymbol, nm);
-    UNPROTECT(2);
-    return ans;
-}
-*/
 
 SEXP MyPi()
 {
@@ -1744,7 +1687,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"IfxRSetAutoCommit", (DL_FUNC)&IfxRSetAutoCommit, 2},
     {"IfxREndTran", (DL_FUNC)&IfxREndTran, 2},
     {"IfxRTypeInfo", (DL_FUNC)&IfxRTypeInfo, 2},
-    //{"IfxRListDataSources", (DL_FUNC)&IfxRListDataSources, 1},
     {"IfxRTerm", (DL_FUNC)&IfxRTerm, 0},
     {"MyPi", (DL_FUNC)&MyPi, 0},
     {NULL, NULL, 0}
