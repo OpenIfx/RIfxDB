@@ -5,10 +5,13 @@ Informix native R driver is a high performing data access interface suitable for
 #### Project Status : **Alpha**
 
 
-#### prebuilt\Win64\IfxR.zip
+### Driver installation
+
+We will be working on creating R package for the driver on all major platform. For the time being you may use a prebuilt binary (IfxR.zip) of the driver if you are Windows 64bit platform.  
+
+
+##### Windows: prebuilt driver binary
 ```bash
-# We will be working on creating R package for the driver on all major platform.
-# For the time being you may use a prebuilt binary (IfxR.zip) of the driver on Windows 64bit platform.  
 
 IfxR\prebuilt\Win64\IfxR.zip
 
@@ -22,38 +25,42 @@ C:\R\R-3.4.3\library
 
 
 
-#### Windows
-### System setup to create the package
+### Building the driver from its source
+
+The two main activities involved in building an R package is building the R runtime library and building R manuals.  For building the native shared library from it C/C++ source code R uses GNU C/C++ compiler.  When you are building it on windows platform you may install Rtools, it contain all necessary utility to complete the build. In short Rtools provides a toolchain for Windows platform that work well with R. It mainly includes GNU make, GNU gcc (from MinGW), and other utilities commonly used on UNIX-ish platform.
+
+#### Windows: Software requirements
 * [Install R](https://cran.r-project.org/)
 * [Rtools](https://cran.rstudio.com/bin/windows/Rtools/) (GNU C/C++ compiler is part of it. **FYI**: I may advice it to be installed at default location which is **C:\Rtools**, to avoid extra build setup)
 * [LaTeX](https://miktex.org/download) (To create R manuals; a complete build of R including PDF manuals too)
 * [RStudio](https://www.rstudio.com/) (Optional: it is convenient to use, but no need of it if you plan to use only command line build.)
 
 
+#### Environment
 ```bash
 # Make the version/dir change according to your installations. 
 SET CSDK_HOME=c:/informix
 SET PATH=C:\Dev\R\R-3.4.3\bin\x64;C:\Dev\MiKTeX2.9\miktex\bin\x64\;c:\Rtools\bin;c:\Rtools\mingw_64\bin;%PATH%
 ```
 
-### Building the driver native library
-The two main activities involved in building an R package is building the R runtime library and building R manuals.  For building shared library from it C/C++ source code R uses GNU C/C++ compiler.  When you are building it on windows platform you may install Rtools, it contain all necessary utility to complete the build. In short Rtools provides a toolchain for Windows platform that work well with R. It mainly includes GNU make, GNU gcc (from MinGW), and other utilities commonly used on UNIX-ish platform.
-
 
 ##### Firing build to creare shared library
 R CMD SHLIB *.c
 ```bash
-C:\work\IfxR\src>R CMD SHLIB *.c
+C:\IfxR\src>R CMD SHLIB *.c
 # The above command that you typed will translate to the following commands.
 c:/Rtools/mingw_64/bin/gcc  -I"C:/Dev/R/R-3.4.3/include" -DNDEBUG     -I"d:/Compiler/gcc-4.9.3/local330/include"     -O2 -Wall  -std=gnu99 -mtune=core2 -c IfxR.c -o IfxR.o
 
 c:/Rtools/mingw_64/bin/gcc -shared -s -static-libgcc -o IfxR.dll tmp.def IfxR.o -Ld:/Compiler/gcc-4.9.3/local330/lib/x64 -Ld:/Compiler/gcc-4.9.3/local330/lib -LC:/Dev/R/R-3.4.1/bin/x64 -lR
 ```
 
-##### Install
+##### Build & Install
+```bash
+R CMD build IfxR
+#It will create something like IfxR_0.1.0.tar.gz file (or the equivalent for your package).
+R CMD INSTALL  IfxR_0.1.0.tar.gz
 ```
-#R CMD INSTALL
-```
+
 
 
 #### Linux
