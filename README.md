@@ -63,11 +63,106 @@ R CMD INSTALL  IfxR_0.1.0.tar.gz
 ```
 
 
+#### Linux 
+You will need a working environment of R (https://cran.r-project.org/bin/linux/) and the LaTeX tools for vignetters creation (e.g. sudo apt-get install texinfo texlive)
 
-#### Linux
-TODO: 
+Clone the IfxR repo:
+```bash
+       informix@ifx1:/home/informix/OpenInformix/$ git clone https://github.com/OpenInformix/IfxR
+```
+Change to the IfxR directory:
+```bash
+       informix@ifx1:/home/informix/OpenInformix/$ cd IfxR
+       informix@ifx1:/home/informix/OpenInformix/IfxR$
+```       
+Create/Copy a Makefile based on your OS:
+```bash
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ cp src/Makevars.linux src/Makevars
+```
+Set CSDK_HOME and LD_LIBRARY_PATH environment variables pointing to your informix CSDK directory:
+```bash
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ echo $INFORMIXDIR
+       /home/informix/12.10.FC10
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ export CSDK_HOME=$INFORMIXDIR
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ export LD_LIBRARY_PATH=$INFORMIXDIR/lib:$INFORMIXDIR/lib/esql:$INFORMIXDIR/lib/cli
+```
+Install the driver in the global R library directory. This process will compile, build and install the library in one simple step: 
+```bash
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ sudo env CSDK_HOME=$CSDK_HOME LD_LIBRARY_PATH=$LD_LIBRARY_PATH  R --verbose CMD INSTALL  .
+       * installing to library `/usr/local/lib/R/site-library'
+       * installing *source* package `IfxR' ...
+       ** libs
+       gcc -std=gnu99 -I/usr/share/R/include -DNDEBUG -fpic      -fpic  -g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -g  -c IfxR.c -o IfxR.o
+       In file included from /usr/share/R/include/Rdefines.h:29:0,
+                                  from IfxR.c:63:
+       IfxR.c: In function `IfxRDriverConnect':
+       /usr/share/R/include/Rinternals.h:1253:24: warning: initialization discards `const' qualifier from pointer target type [-Wdiscarded-qualifiers]
+       #define translateChar  Rf_translateChar
+                                                ^
+       IfxR.c:294:28: note: in expansion of macro `translateChar'
+                     char *UserConStr = translateChar(STRING_ELT(connection, 0));
+                                                       ^
+       gcc -std=gnu99 -shared -L/usr/lib/R/lib -Wl,-Bsymbolic-functions -Wl,-z,relro -o IfxR.so IfxR.o -L/home/informix/12.10.FC10/lib/cli -lthcli -L/usr/lib/R/lib -lR
+       installing to /usr/local/lib/R/site-library/IfxR/libs
+       ** R
+       ** inst
+       ** preparing package for lazy loading
+       ** help
+       *** installing help indices
+       ** building package indices
+       ** installing vignettes
+       ** testing if installed package can be loaded
+       * DONE (IfxR)
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ 
+```
+If there was no errors during the install process, the IfxR library will be copied to:
+```bash
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ ls -la /usr/local/lib/R/site-library/IfxR/libs
+       total 100
+       drwxrwxr-x 2 root staff  4096 Mar 13 16:48 .
+       drwxrwxr-x 7 root staff  4096 Mar 13 16:48 ..
+       -rwxrwxr-x 1 root staff 91312 Mar 13 16:48 IfxR.so
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ 
+```
+Check that it works using the Sample1.R R script (remember to adjust the connection string for your Informix server)
+```bash       
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ grep irk1210 Sample1.R 
+       ch <- IfxConnect( "SERVER=irk1210;DATABASE=stores7;HOST=127.0.0.1;SERVICE=9088;UID=informix;PWD=mypasswd;" )
+
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ 
+
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ Rscript Sample1.R 
+       [1] " DROP TABLE returns [1] "
+       [1] "create table t1 ( c1 int, c2 char(20), c3 int, c4 int ) "
+       [1] "insert into t1 values( 1, 'Sunday', 101, 201 );"
+       [1] "insert into t1 values( 2, 'Monday', 102, 202 );"
+       [1] "insert into t1 values( 3, 'Tuesday', 103, 203 );"
+       [1] "insert into t1 values( 4, 'Wednesday', 104, 204 );"
+       [1] "insert into t1 values( 5, 'Thursday', 105, 2005 );"
+       [1] "insert into t1 values( 6, 'Friday', 106, 206 );"
+       [1] "insert into t1 values( 7, 'Saturday', 107, 207 );"
+       [1] "****** The Select Output is ********"
+       $data
+       $data[[1]]
+       [1] 1 2 3 4 5 6 7
+
+       $data[[2]]
+       [1] "Sunday              " "Monday              " "Tuesday             "
+       [4] "Wednesday           " "Thursday            " "Friday              "
+       [7] "Saturday            "
+
+       $data[[3]]
+       [1] 101 102 103 104 105 106 107
+
+       $data[[4]]
+       [1]  201  202  203  204 2005  206  207
 
 
+       $stat
+       [1] 1
+
+       informix@ifx1:/home/informix/OpenInformix/IfxR$ 
+```
 #### Sample
 ```R
 # Rscript  Sample1.R 
